@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Arquivo de Parâmetros para o nó EstimationManager
+# -----------------------------------------------------------------------------
+# Este arquivo define todos os parâmetros configuráveis para o nó
+# 'estimation_manager'. Ele é carregado pelo arquivo de lançamento.
+# -----------------------------------------------------------------------------
+/**/**:
+  ros__parameters:
+    # --- Parâmetros Gerais ---
+
+    # Frequência (em Hz) para o timer principal ou outras tarefas periódicas.
+    frequency: 100.0
+
+    # O 'name' da fonte de odometria que deve ser ativada assim que o nó iniciar.
+    # Deve corresponder a um dos nomes em 'odometry_source_names'.
+    initial_odometry_source: "px4_api_odom"
+
+    # --- Configuração das Fontes de Odometria ---
+    # As quatro listas a seguir devem ter EXATAMENTE o mesmo número de elementos.
+    # O elemento na posição 'i' de cada lista corresponde à configuração da mesma fonte.
+    # Ex: a fonte "px4_api_odom" usa o tipo "nav_msgs/Odometry", o frame "odom", etc.
+
+    # Nomes únicos e legíveis para identificar cada fonte de odometria.
+    odometry_source_names: ["px4_api_odom", "openvins_odom"]
+
+    # Tipos de mensagem ROS para cada fonte. Usado pela 'fábrica' para criar o subscriber correto.
+    # Atualmente, apenas "nav_msgs/Odometry" é suportado pela lógica C++.
+    odometry_source_types: ["nav_msgs/Odometry", "nav_msgs/Odometry"]
+
+    # O 'frame_id' esperado no cabeçalho (header) das mensagens de cada fonte.
+    # Usado para identificar a origem da mensagem no callback e para o TF.
+    odometry_source_frames: ["odom", "uav1/vins_world"]
+
+    # Os tópicos base para cada fonte. O nome do UAV ('uav_name') será prefixado a eles
+    # para formar o tópico completo (ex: /uav1/px4_api/odometry).
+    odometry_source_topics: ["px4_api/odometry", "vins_republisher/odom"]
