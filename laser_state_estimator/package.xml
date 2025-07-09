@@ -1,0 +1,18 @@
+<package format="3">
+  <name>laser_state_estimator</name>
+  <version>0.1.0</version>
+  <description>State estimator for quadrotor</description>
+
+  <maintainer email="rafael.novack07@gmail.com">Rafael Novack</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>nav_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
