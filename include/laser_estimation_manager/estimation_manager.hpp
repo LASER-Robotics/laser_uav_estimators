@@ -53,6 +53,7 @@ namespace laser_estimation_manager
         typename rclcpp::Subscription<MsgT>::SharedPtr subscription; ///< The ROS2 subscription object.
         typename MsgT::SharedPtr last_message;                       ///< A pointer to the last message received from this source.
         rclcpp::Time last_message_time{0, 0};                        ///< The timestamp of when the last message was received.
+        double expected_frequency{0.0};                              ///< The expected frequency of messages from this source, used for diagnostics.
     };
 
     /// @brief An alias for a specific configuration for Odometry messages.
@@ -187,9 +188,13 @@ namespace laser_estimation_manager
          * periodic publishing or other tasks.
          */
         void tmrOdometryPublisher();
-
         rclcpp::TimerBase::SharedPtr tmr_odometry_publisher_; ///< Pointer to the timer object.
-        double _rate_odometry_publisher_{100.0};              ///< The frequency (in Hz) for the publishing timer.
+
+        void tmrHealthCheck();
+        rclcpp::TimerBase::SharedPtr tmr_health_check_; // <-- ADD THIS
+
+        double _rate_odometry_publisher_{100.0}; ///< The frequency (in Hz) for the publishing timer.
+        double _rate_health_check_{1.0};         ///< The frequency (in Hz) for the health check timer.
 
         /*//}*/
 
@@ -224,7 +229,7 @@ namespace laser_estimation_manager
         std::vector<SourceVariant> generic_source_configs_; ///< Vector that stores all configured data source configurations.
         std::string _uav_name_;                             ///< The UAV name, used for building topics and frames.
         std::string current_active_odometry_name_;          ///< The name of the currently active odometry source.
-
+        // rclcpp::Duration _data_timeout;                     ///< The maximum time allowed without receiving data from the active source before considering it stale.
         /*//}*/
 
         /*//}*/

@@ -29,6 +29,9 @@ namespace laser_estimation_manager
         declare_parameter("odometry_source_frames", rclcpp::ParameterValue(std::vector<std::string>{}));
         declare_parameter("odometry_source_topics", rclcpp::ParameterValue(std::vector<std::string>{}));
 
+        declare_parameter("data_timeout_ms", rclcpp::ParameterValue(200));
+        declare_parameter("health_check_rate", rclcpp::ParameterValue(1.0));
+
         // Initialization of TF components.
         broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);

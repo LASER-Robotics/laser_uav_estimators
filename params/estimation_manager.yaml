@@ -10,6 +10,8 @@
 
     # Frequência (em Hz) para o timer principal ou outras tarefas periódicas.
     frequency: 100.0
+    data_timeout_ms: 200 # (NEW) Max data age in milliseconds before it's considered stale
+    health_check_rate: 1.0 # (NEW) Frequency in Hz for the health check timer
 
     # O 'name' da fonte de odometria que deve ser ativada assim que o nó iniciar.
     # Deve corresponder a um dos nomes em 'odometry_source_names'.
@@ -34,3 +36,8 @@
     # Os tópicos base para cada fonte. O nome do UAV ('uav_name') será prefixado a eles
     # para formar o tópico completo (ex: /uav1/px4_api/odometry).
     odometry_source_topics: ["px4_api/odometry", "vins_republisher/odom"]
+
+    # Frequências esperadas (em Hz) para cada fonte de odometria.
+    # Essas frequências são usadas para verificar se a fonte está ativa e enviando dados.
+    # Se uma fonte não enviar dados nessa frequência, ela será considerada inativa.
+    odometry_source_frequencies: [50.0, 30.0] # Expected frequency (in Hz) for each source
