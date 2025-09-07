@@ -1,9 +1,0 @@
-quadrotor_model:
-  ros__parameters:
-    rate:
-      pub_state: 100.0
-    # mass: 3.8775 # Kg
-    mass: 2.0 # Kg
-    c_tau: 0.59
-    inertia: [0.4953, 0.4953, 0.3413] # {Ixx, Iyy, Izz}
-    motors_pos: [-0.185, -0.18, 0.185, -0.18, -0.185, 0.18, 0.185, 0.18] # {motor_0_x, motor_0_y, motor_1_x, motor_1_y, ......}          

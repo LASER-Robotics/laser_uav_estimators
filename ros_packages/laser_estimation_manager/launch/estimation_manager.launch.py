@@ -32,9 +32,9 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             'namespace',
-            # Tenta obter o namespace da variável de ambiente 'uav_name',
+            # Tenta obter o namespace da variável de ambiente 'UAV_NAME',
             # se não encontrar, usa 'uav' como padrão.
-            default_value=EnvironmentVariable('uav_name', default_value='uav'),
+            default_value=EnvironmentVariable('UAV_NAME', default_value='uav'),
             description='Namespace de nível superior para o nó.'
         )
     )
@@ -70,7 +70,7 @@ def generate_launch_description():
             estimation_manager_params_file,
             # Passa o namespace também como um parâmetro ROS, útil se o nó precisar
             # internamente do seu próprio namespace.
-            {'uav_name': namespace}
+            {'UAV_NAME': namespace}
         ],
         # Remapeia os tópicos internos do nó (com prefixo ~/) para tópicos globais.
         # Ex: O código C++ que assina "~/odometry_in" irá, na verdade, assinar

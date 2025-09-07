@@ -1,0 +1,79 @@
+# Parâmetros para o nó StateEstimator
+/**/**:
+  ros__parameters:
+    # Frequência em Hz do loop de estimação (predict + correct)
+    frequency: 100.0
+
+    # Configurações para PX4 Odometry
+    px4_odom_tolerance: 0.015 # (1.5 / 100Hz) = 1.5x o período do sensor
+    px4_odom_timeout: 0.5 # 500ms
+
+    # Configurações para OpenVINS Odometry
+    openvins_odom_tolerance: 0.0075 # (1.5 / 200Hz) = 1.5x o período do sensor
+    openvins_odom_timeout: 0.5 # 500ms
+
+    # Configurações para Fast-LIO Odometry
+    fast_lio_odom_tolerance: 0.15 # (1.5 / 10Hz) = 1.5x o período do sensor
+    fast_lio_odom_timeout: 2.0 # 2s, por ser um sensor lento
+
+    # Configurações para IMU
+    imu_tolerance: 0.015 # (1.5 / 100Hz)
+    imu_timeout: 0.5 # 500ms
+
+    # Configurações para Controle
+    control_tolerance: 0.015 # (1.5 / 100Hz)
+    control_timeout: 0.5 # 500ms
+
+    # Nível de verbosidade do EKF ("SILENT", "INFO", "DEBUG")
+    # ekf_verbosity: "INFO"
+    ekf_verbosity: "DEBUG"
+
+    # Parâmetros físicos do Drone
+    drone_params:
+      mass: 1.60
+      arm_length: 0.258
+      thrust_coefficient: 1.0
+      torque_coefficient: 0.059
+      # Matriz de Inércia [Ixx, Iyy, Izz]
+      inertia: [0.004953, 0.004953, 0.003413]
+
+    # --- GANHOS DE RUÍDO DO PROCESSO (MODELO) ---
+    # O quanto confiamos na predição do modelo físico.
+    # > 1.0: Menos confiança (incerteza cresce mais rápido)
+    # < 1.0: Mais confiança (incerteza cresce mais devagar)
+    process_noise_gains:
+      position: 0.001
+      orientation: 0.01
+      linear_velocity: 0.01
+      angular_velocity: 0.1
+
+    # --- GANHOS DE RUÍDO DA MEDIÇÃO (SENSORES) ---
+    # O quanto confiamos em cada medição.
+    # > 1.0: Menos confiança (filtro dá menos peso ao sensor)
+    # < 1.0: Mais confiança (filtro "puxa" mais para o sensor)
+    measurement_noise_gains:
+      px4_odometry:
+        position: 0.0001
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.01
+      openvins:
+        position: 0.0001
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.1
+      fast_lio:
+        position: 0.0001
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.1
+      imu:
+        position: 0.1 # Não usado
+        orientation: 0.1 # Não usado
+        linear_velocity: 0.1 # Não usado
+        angular_velocity: 0.1
+      gps:
+        position: 0.1
+        orientation: 0.1 # Não usado
+        linear_velocity: 0.1 # Não usado
+        angular_velocity: 0.1 # Não usado
