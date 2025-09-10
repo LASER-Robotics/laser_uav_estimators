@@ -1,11 +1,3 @@
-Excelente ideia\! Manter um padrão de documentação em todos os seus repositórios é fundamental.
-
-Com base na estrutura do seu projeto `laser_estimation_manager` e no modelo que você forneceu, preparei um `README.md` completo que descreve os dois pacotes principais (`laser_state_estimator` e `laser_estimation_manager`) e os nós que eles contêm.
-
-Pode copiar e colar o conteúdo abaixo diretamente no arquivo `README.md` na raiz do seu repositório `laser_estimation_manager`.
-
------
-
 # Laser Estimation Manager
 
 ROS 2 repository containing the high-level estimation nodes for the Laser UAV System (LUS).
