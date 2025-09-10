@@ -52,7 +52,7 @@ def generate_launch_description():
     estimator_node = LifecycleNode(
         package='laser_state_estimator',
         executable='state_estimator_main',
-        name='state_estimator',
+        name='estimation_manager',
         namespace=EnvironmentVariable('UAV_NAME', default_value='uav'),
         output='screen',
         parameters=[
@@ -61,13 +61,15 @@ def generate_launch_description():
             {'use_sim_time': LaunchConfiguration('use_sim_time')}
         ],
         remappings=[
-            ('odometry_in', 'px4_api/odometry_'),
+            ('odometry_in', 'px4_api/odometry'),
             ('odometry_fast_lio_in', 'fast_lio/odometry'),
             ('odometry_openvins_in', 'vins_republisher/odom'),
             ('imu_in', 'px4_api/imu'),
             ('control_in', 'control_manager/diagnostics'),
             ('odometry_out', 'estimation_manager/estimation'),
             ('odometry_predict', 'estimation_manager/estimation_predict'),
+            ('set_odometry', 'set_odometry'),
+            ('diagnostics', 'estimation_manager/diagnostics'),
         ]
     )
 
