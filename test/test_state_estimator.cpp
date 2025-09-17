@@ -34,7 +34,7 @@
  * @see https://github.com/LASER-Robotics/laser_uav_estimator
  * @see https://github.com/LASER-Robotics/laser_uav_lib
  */
-#include <gtest/gtest.h>CorrectionDecreasesUncertainty
+#include <gtest/gtest.h>
 #include <laser_uav_estimator/state_estimator.hpp>
 #include <laser_uav_lib/attitude_converter/attitude_converter.hpp>
 #include <nav_msgs/msg/odometry.hpp>
