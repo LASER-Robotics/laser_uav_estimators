@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+
+<!--
+/**
+ * @file package.xml
+ * @brief ROS2 package configuration for laser_uav_estimator
+ * @author Wagner Dantas Garcia / Laser UAV Team
+ * @email wagnergarcia@eng.ci.ufpb.br
+ * @date September 16, 2025
+ * @copyright Apache License 2.0
+ * 
+ * @details This package.xml file defines the configuration for the laser_uav_estimator
+ * ROS2 package, which provides advanced state estimation capabilities for Unmanned 
+ * Aerial Vehicle (UAV) systems. The package implements a sophisticated Extended Kalman 
+ * Filter (EKF) that fuses multiple sensor sources to provide robust and accurate state 
+ * estimation for autonomous flight operations.
+ * 
+ * Key Features:
+ * - Multi-sensor fusion state estimation using Extended Kalman Filter
+ * - Integration with Visual-Inertial Odometry (VIO) systems
+ * - LiDAR-Inertial Odometry (LIO) support via FAST-LIO
+ * - IMU and GPS sensor fusion capabilities
+ * - PX4 autopilot integration for seamless flight controller communication
+ * - Lifecycle node management for controlled operation states
+ * - Real-time state estimation with configurable noise parameters
+ * 
+ * Sensor Integration:
+ * - OpenVINS: Visual-Inertial Odometry for camera-based navigation
+ * - FAST-LIO: LiDAR-Inertial Odometry for precise positioning
+ * - IMU: Inertial Measurement Unit for attitude and angular velocity
+ * - GPS: Global Positioning System for absolute position reference
+ * - PX4 Odometry: Flight controller internal state estimates
+ * 
+ * Mathematical Framework:
+ * - Extended Kalman Filter with automatic differentiation
+ * - 13-state estimation (position, velocity, attitude, biases)
+ * - Dynamic noise parameter tuning for different flight conditions
+ * - Robust outlier detection and rejection mechanisms
+ * 
+ * Dependencies:
+ * - ROS2 Humble or later
+ * - laser_uav_lib: Core UAV functionality and filtering utilities
+ * - Eigen3: Linear algebra operations for mathematical computations
+ * - autodiff: Automatic differentiation for Jacobian calculations
+ * - Standard ROS2 message interfaces for sensor data
+ * 
+ * @note This package follows ROS2 package format 3 specifications
+ * @see
+https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-Your-First-ROS2-Package.html
+ * @see https://github.com/LASER-Robotics/laser_uav_lib
+ */
+-->
+
+<package format="3">
+  <!-- Package identification -->
+  <name>laser_uav_estimator</name>
+  <version>0.0.0</version>
+  <description>Advanced 13-state Extended Kalman Filter (EKF) for UAV state estimation, providing
+    robust multi-sensor fusion of odometry sources (VIO, LIO, PX4) and IMU data for accurate
+    position, velocity, and attitude estimation in autonomous flight operations</description>
+
+  <!-- Package maintainer information -->
+  <maintainer email="wagnergarcia@eng.ci.ufpb.br">Wagner Dantas Garcia</maintainer>
+
+  <!-- License information -->
+  <license>Apache License 2.0</license>
+
+  <!-- Build tool dependencies -->
+  <!-- ament_cmake: CMake-based build system for ROS2 packages -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core ROS2 runtime dependencies -->
+  <!-- Essential ROS2 libraries for node creation, communication, and lifecycle management -->
+
+  <!-- rclcpp: Core ROS2 C++ client library for node creation and communication -->
+  <depend>rclcpp</depend>
+
+  <!-- rclcpp_lifecycle: Lifecycle node management for controlled state transitions -->
+  <!-- Enables configure, activate, deactivate, cleanup state management -->
+  <depend>rclcpp_lifecycle</depend>
+
+  <!-- rclcpp_components: Component-based node architecture for efficient resource usage -->
+  <depend>rclcpp_components</depend>
+
+  <!-- geometry_msgs: Geometric message types (Point, Pose, Twist, Transform, etc.) -->
+  <!-- Used for position, orientation, and velocity data exchange -->
+  <depend>geometry_msgs</depend>
+
+  <!-- nav_msgs: Navigation-related message types (Odometry, Path, OccupancyGrid, etc.) -->
+  <!-- Primary interface for odometry data from various sources -->
+  <depend>nav_msgs</depend>
+
+  <!-- sensor_msgs: Sensor data message types (IMU, GPS, LaserScan, PointCloud, etc.) -->
+  <!-- Essential for IMU and GPS sensor data integration -->
+  <depend>sensor_msgs</depend>
+
+  <!-- tf2_ros: Transform library for coordinate frame transformations -->
+  <!-- Manages spatial relationships between different coordinate frames -->
+  <depend>tf2_ros</depend>
+
+  <!-- laser_uav_lib: Custom LASER UAV core functionality library -->
+  <!-- Provides filtering utilities, attitude conversion, and EKF framework -->
+  <depend>laser_uav_lib</depend>
+
+  <!-- Mathematical library dependencies -->
+  <!-- Eigen3: High-performance C++ linear algebra library -->
+
+  <!-- Build-time dependency for Eigen3 development headers -->
+  <!-- Required for compilation of mathematical operations in EKF -->
+  <build_depend>libeigen3-dev</build_depend>
+
+  <!-- CMake module for finding and configuring Eigen3 during build export -->
+  <!-- Ensures proper Eigen3 integration for packages that depend on this one -->
+  <build_export_depend>eigen3_cmake_module</build_export_depend>
+
+  <!-- Runtime dependency for Eigen3 library -->
+  <!-- Required for execution of mathematical computations -->
+  <exec_depend>libeigen3-dev</exec_depend>
+
+  <!-- Automatic differentiation library dependencies -->
+  <!-- autodiff: C++ library for automatic differentiation of mathematical functions -->
+  <!-- Essential for computing Jacobians in the Extended Kalman Filter -->
+
+  <!-- Build-time dependency for autodiff development headers -->
+  <!-- Required for compilation of automatic differentiation computations -->
+  <build_depend>libautodiff-dev</build_depend>
+
+  <!-- Runtime dependency for autodiff library -->
+  <!-- Required for execution of automatic differentiation operations -->
+  <exec_depend>libautodiff-dev</exec_depend>
+
+  <!-- Testing dependencies -->
+  <!-- Comprehensive testing framework for code quality assurance -->
+
+  <!-- ament_lint_auto: Automatic linting tools for code quality checks -->
+  <!-- Provides automated code style and quality validation -->
+  <test_depend>ament_lint_auto</test_depend>
+
+  <!-- ament_lint_common: Common linting tools collection -->
+  <!-- Includes cpplint, uncrustify, flake8, and other standard linters -->
+  <test_depend>ament_lint_common</test_depend>
+
+  <!-- Package export configuration -->
+  <export>
+    <!-- Specify that this package uses ament_cmake build system -->
+    <!-- Ensures proper integration with ROS2 build and package management -->
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
