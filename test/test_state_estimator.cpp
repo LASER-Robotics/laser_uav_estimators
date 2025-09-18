@@ -26,16 +26,16 @@
  *
  * Dependencies:
  * - GoogleTest framework for unit testing
- * - laser_uav_estimator::StateEstimator - Main class under test
+ * - laser_uav_estimators::StateEstimator - Main class under test
  * - laser_uav_lib::AttitudeConverter - For attitude representation utilities
  * - Standard ROS2 message types for sensor data simulation
  *
  * @note All tests use realistic drone parameters based on actual UAV specifications
- * @see https://github.com/LASER-Robotics/laser_uav_estimator
+ * @see https://github.com/LASER-Robotics/laser_uav_estimators
  * @see https://github.com/LASER-Robotics/laser_uav_lib
  */
 #include <gtest/gtest.h>
-#include <laser_uav_estimator/state_estimator.hpp>
+#include <laser_uav_estimators/state_estimator.hpp>
 #include <laser_uav_lib/attitude_converter/attitude_converter.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <limits>
@@ -120,7 +120,7 @@ class TestStateEstimator : public ::testing::Test
 protected:
     /// @brief Unique pointer to the StateEstimator instance under test
     /// Automatically managed to ensure proper cleanup after each test
-    std::unique_ptr<laser_uav_estimator::StateEstimator> ekf;
+    std::unique_ptr<laser_uav_estimators::StateEstimator> ekf;
 
     /// @brief Thrust per motor required for hover (counteracting gravity)
     /// Calculated as (mass * gravity) / 4 motors = force per motor
@@ -142,7 +142,7 @@ protected:
      */
     void SetUp() override
     {
-        ekf = std::make_unique<laser_uav_estimator::StateEstimator>(
+        ekf = std::make_unique<laser_uav_estimators::StateEstimator>(
             TEST_MASS, TEST_MOTOR_POSITIONS, TEST_THRUST_COEFF,
             TEST_TORQUE_COEFF, TEST_INERTIA, "INFO");
     }
@@ -203,7 +203,7 @@ protected:
      * - Analyzing convergence behavior with multiple data sources
      */
     void run_full_simulation(const Eigen::Vector4d &u,
-                             const laser_uav_estimator::MeasurementPackage &measurements,
+                             const laser_uav_estimators::MeasurementPackage &measurements,
                              int steps,
                              double dt)
     {
@@ -237,10 +237,10 @@ protected:
     {
         std::cout << "--- " << title << " ---" << std::endl;
         std::cout << "     State Vector Analysis:" << std::endl;
-        std::cout << "     ├ Position (p):      " << state.template segment<3>(laser_uav_estimator::State::PX).transpose() << " [m]" << std::endl;
-        std::cout << "     ├ Quaternion (q):    " << state.template segment<4>(laser_uav_estimator::State::QW).transpose() << " [w,x,y,z]" << std::endl;
-        std::cout << "     ├ Linear Vel (v):    " << state.template segment<3>(laser_uav_estimator::State::VX).transpose() << " [m/s]" << std::endl;
-        std::cout << "     └ Angular Vel (w):   " << state.template segment<3>(laser_uav_estimator::State::WX).transpose() << " [rad/s]" << std::endl;
+        std::cout << "     ├ Position (p):      " << state.template segment<3>(laser_uav_estimators::State::PX).transpose() << " [m]" << std::endl;
+        std::cout << "     ├ Quaternion (q):    " << state.template segment<4>(laser_uav_estimators::State::QW).transpose() << " [w,x,y,z]" << std::endl;
+        std::cout << "     ├ Linear Vel (v):    " << state.template segment<3>(laser_uav_estimators::State::VX).transpose() << " [m/s]" << std::endl;
+        std::cout << "     └ Angular Vel (w):   " << state.template segment<3>(laser_uav_estimators::State::WX).transpose() << " [rad/s]" << std::endl;
         std::cout << "----------------------------------------" << std::endl
                   << std::endl;
     }
@@ -282,19 +282,19 @@ TEST_F(TestStateEstimator, Initialization)
     const auto &covariance = ekf->get_covariance();
 
     // Verify identity quaternion (no initial rotation)
-    EXPECT_DOUBLE_EQ(state(laser_uav_estimator::State::QW), 1.0);
+    EXPECT_DOUBLE_EQ(state(laser_uav_estimators::State::QW), 1.0);
 
     // Verify zero initial position
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::PX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::PX).norm(), 0.0);
 
     // Verify zero initial orientation components (x, y, z of quaternion)
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::QX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::QX).norm(), 0.0);
 
     // Verify zero initial linear velocity
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::VX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::VX).norm(), 0.0);
 
     // Verify zero initial angular velocity
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::WX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::WX).norm(), 0.0);
 
     // Verify positive initial uncertainty (covariance trace > 0)
     ASSERT_GT(covariance.trace(), 0.0);
@@ -373,7 +373,7 @@ TEST_F(TestStateEstimator, CorrectionDecreasesUncertainty)
     auto initial_trace = ekf->get_covariance().trace();
 
     // Create high-quality measurement package
-    laser_uav_estimator::MeasurementPackage measurements;
+    laser_uav_estimators::MeasurementPackage measurements;
     nav_msgs::msg::Odometry odom_msg;
 
     // Position measurement: drone at origin
@@ -460,10 +460,10 @@ TEST_F(TestStateEstimator, QuaternionNormalization)
 
     // Calculate quaternion norm manually for verification
     double norm_q = std::sqrt(
-        std::pow(state(laser_uav_estimator::State::QW), 2) +
-        std::pow(state(laser_uav_estimator::State::QX), 2) +
-        std::pow(state(laser_uav_estimator::State::QY), 2) +
-        std::pow(state(laser_uav_estimator::State::QZ), 2));
+        std::pow(state(laser_uav_estimators::State::QW), 2) +
+        std::pow(state(laser_uav_estimators::State::QX), 2) +
+        std::pow(state(laser_uav_estimators::State::QY), 2) +
+        std::pow(state(laser_uav_estimators::State::QZ), 2));
 
     // Verify quaternion remains properly normalized
     EXPECT_NEAR(norm_q, 1.0, 1e-6);
@@ -506,13 +506,13 @@ TEST_F(TestStateEstimator, ResetRestoresInitialState)
     const auto &state = ekf->get_state();
 
     // Verify identity quaternion restoration (w=1, x=y=z=0)
-    EXPECT_DOUBLE_EQ(state(laser_uav_estimator::State::QW), 1.0);
+    EXPECT_DOUBLE_EQ(state(laser_uav_estimators::State::QW), 1.0);
 
     // Verify zero position restoration
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::PX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::PX).norm(), 0.0);
 
     // Verify zero velocity restoration
-    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimator::State::VX).norm(), 0.0);
+    EXPECT_DOUBLE_EQ(state.segment<3>(laser_uav_estimators::State::VX).norm(), 0.0);
 }
 
 // =============================================================================
@@ -555,13 +555,13 @@ TEST_F(TestStateEstimator, HoverShouldRemainStationary)
     const auto &state = ekf->get_state();
 
     // Verify minimal position drift during hover
-    EXPECT_NEAR(state.segment<3>(laser_uav_estimator::State::PX).norm(), 0.0, 1e-3);
+    EXPECT_NEAR(state.segment<3>(laser_uav_estimators::State::PX).norm(), 0.0, 1e-3);
 
     // Verify minimal linear velocity during hover
-    EXPECT_NEAR(state.segment<3>(laser_uav_estimator::State::VX).norm(), 0.0, 1e-3);
+    EXPECT_NEAR(state.segment<3>(laser_uav_estimators::State::VX).norm(), 0.0, 1e-3);
 
     // Verify minimal angular velocity during hover
-    EXPECT_NEAR(state.segment<3>(laser_uav_estimator::State::WX).norm(), 0.0, 1e-3);
+    EXPECT_NEAR(state.segment<3>(laser_uav_estimators::State::WX).norm(), 0.0, 1e-3);
 }
 
 /**
@@ -599,10 +599,10 @@ TEST_F(TestStateEstimator, FreeFallWhenNoThrust)
     const auto &state = ekf->get_state();
 
     // Verify downward displacement due to gravity
-    EXPECT_LT(state(laser_uav_estimator::State::PZ), 0.0);
+    EXPECT_LT(state(laser_uav_estimators::State::PZ), 0.0);
 
     // Verify downward velocity due to gravitational acceleration
-    EXPECT_LT(state(laser_uav_estimator::State::VZ), 0.0);
+    EXPECT_LT(state(laser_uav_estimators::State::VZ), 0.0);
 }
 
 // =============================================================================
@@ -647,14 +647,14 @@ TEST_F(TestStateEstimator, UpwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify positive altitude gain
-    EXPECT_GT(state(laser_uav_estimator::State::PZ), 0.0);
+    EXPECT_GT(state(laser_uav_estimators::State::PZ), 0.0);
 
     // Verify positive vertical velocity (climbing)
-    EXPECT_GT(state(laser_uav_estimator::State::VZ), 0.0);
+    EXPECT_GT(state(laser_uav_estimators::State::VZ), 0.0);
 
     // Verify minimal horizontal drift during vertical motion
-    EXPECT_NEAR(state(laser_uav_estimator::State::PX), 0.0, 1e-4);
-    EXPECT_NEAR(state(laser_uav_estimator::State::PY), 0.0, 1e-4);
+    EXPECT_NEAR(state(laser_uav_estimators::State::PX), 0.0, 1e-4);
+    EXPECT_NEAR(state(laser_uav_estimators::State::PY), 0.0, 1e-4);
 }
 
 /**
@@ -692,7 +692,7 @@ TEST_F(TestStateEstimator, DownwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify negative vertical velocity (descending motion)
-    EXPECT_LT(state(laser_uav_estimator::State::VZ), 0.0);
+    EXPECT_LT(state(laser_uav_estimators::State::VZ), 0.0);
 }
 
 // =============================================================================
@@ -745,15 +745,15 @@ TEST_F(TestStateEstimator, ForwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify forward translation
-    EXPECT_GT(state(laser_uav_estimator::State::PX), 0.0); // Forward displacement
-    EXPECT_GT(state(laser_uav_estimator::State::VX), 0.0); // Forward velocity
-    EXPECT_GT(state(laser_uav_estimator::State::QY), 0.0); // Forward pitch attitude
+    EXPECT_GT(state(laser_uav_estimators::State::PX), 0.0); // Forward displacement
+    EXPECT_GT(state(laser_uav_estimators::State::VX), 0.0); // Forward velocity
+    EXPECT_GT(state(laser_uav_estimators::State::QY), 0.0); // Forward pitch attitude
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::PY), 0.0, STATE_TOLERANCE); // No lateral drift
-    EXPECT_NEAR(state(laser_uav_estimator::State::VY), 0.0, STATE_TOLERANCE); // No lateral velocity
-    EXPECT_NEAR(state(laser_uav_estimator::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::PY), 0.0, STATE_TOLERANCE); // No lateral drift
+    EXPECT_NEAR(state(laser_uav_estimators::State::VY), 0.0, STATE_TOLERANCE); // No lateral velocity
+    EXPECT_NEAR(state(laser_uav_estimators::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
 }
 
 /**
@@ -798,15 +798,15 @@ TEST_F(TestStateEstimator, BackwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify backward translation
-    EXPECT_LT(state(laser_uav_estimator::State::PX), 0.0); // Backward displacement
-    EXPECT_LT(state(laser_uav_estimator::State::VX), 0.0); // Backward velocity
-    EXPECT_LT(state(laser_uav_estimator::State::QY), 0.0); // Backward pitch attitude
+    EXPECT_LT(state(laser_uav_estimators::State::PX), 0.0); // Backward displacement
+    EXPECT_LT(state(laser_uav_estimators::State::VX), 0.0); // Backward velocity
+    EXPECT_LT(state(laser_uav_estimators::State::QY), 0.0); // Backward pitch attitude
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::PY), 0.0, STATE_TOLERANCE); // No lateral drift
-    EXPECT_NEAR(state(laser_uav_estimator::State::VY), 0.0, STATE_TOLERANCE); // No lateral velocity
-    EXPECT_NEAR(state(laser_uav_estimator::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::PY), 0.0, STATE_TOLERANCE); // No lateral drift
+    EXPECT_NEAR(state(laser_uav_estimators::State::VY), 0.0, STATE_TOLERANCE); // No lateral velocity
+    EXPECT_NEAR(state(laser_uav_estimators::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
 }
 
 /**
@@ -853,15 +853,15 @@ TEST_F(TestStateEstimator, RightwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify rightward translation (negative Y in NED frame)
-    EXPECT_LT(state(laser_uav_estimator::State::PY), 0.0); // Rightward displacement
-    EXPECT_LT(state(laser_uav_estimator::State::VY), 0.0); // Rightward velocity
-    EXPECT_GT(state(laser_uav_estimator::State::QX), 0.0); // Right roll attitude
+    EXPECT_LT(state(laser_uav_estimators::State::PY), 0.0); // Rightward displacement
+    EXPECT_LT(state(laser_uav_estimators::State::VY), 0.0); // Rightward velocity
+    EXPECT_GT(state(laser_uav_estimators::State::QX), 0.0); // Right roll attitude
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::PX), 0.0, STATE_TOLERANCE); // No forward/backward drift
-    EXPECT_NEAR(state(laser_uav_estimator::State::VX), 0.0, STATE_TOLERANCE); // No forward/backward velocity
-    EXPECT_NEAR(state(laser_uav_estimator::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::PX), 0.0, STATE_TOLERANCE); // No forward/backward drift
+    EXPECT_NEAR(state(laser_uav_estimators::State::VX), 0.0, STATE_TOLERANCE); // No forward/backward velocity
+    EXPECT_NEAR(state(laser_uav_estimators::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
 }
 
 /**
@@ -908,15 +908,15 @@ TEST_F(TestStateEstimator, LeftwardMovement)
     const auto &state = ekf->get_state();
 
     // Verify leftward translation (positive Y in NED frame)
-    EXPECT_GT(state(laser_uav_estimator::State::PY), 0.0); // Leftward displacement
-    EXPECT_GT(state(laser_uav_estimator::State::VY), 0.0); // Leftward velocity
-    EXPECT_LT(state(laser_uav_estimator::State::QX), 0.0); // Left roll attitude
+    EXPECT_GT(state(laser_uav_estimators::State::PY), 0.0); // Leftward displacement
+    EXPECT_GT(state(laser_uav_estimators::State::VY), 0.0); // Leftward velocity
+    EXPECT_LT(state(laser_uav_estimators::State::QX), 0.0); // Left roll attitude
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::PX), 0.0, STATE_TOLERANCE); // No forward/backward drift
-    EXPECT_NEAR(state(laser_uav_estimator::State::VX), 0.0, STATE_TOLERANCE); // No forward/backward velocity
-    EXPECT_NEAR(state(laser_uav_estimator::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::PX), 0.0, STATE_TOLERANCE); // No forward/backward drift
+    EXPECT_NEAR(state(laser_uav_estimators::State::VX), 0.0, STATE_TOLERANCE); // No forward/backward velocity
+    EXPECT_NEAR(state(laser_uav_estimators::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
 }
 
 // =============================================================================
@@ -971,12 +971,12 @@ TEST_F(TestStateEstimator, YawRotation)
     const auto &state = ekf->get_state();
 
     // Verify positive yaw rotation
-    EXPECT_GT(state(laser_uav_estimator::State::WZ), 0.0); // Positive yaw rate
-    EXPECT_GT(state(laser_uav_estimator::State::QZ), 0.0); // Positive yaw angle
+    EXPECT_GT(state(laser_uav_estimators::State::WZ), 0.0); // Positive yaw rate
+    EXPECT_GT(state(laser_uav_estimators::State::QZ), 0.0); // Positive yaw angle
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
 }
 
 /**
@@ -1024,12 +1024,12 @@ TEST_F(TestStateEstimator, TwoYawRotation)
     const auto &state = ekf->get_state();
 
     // Verify negative yaw rotation
-    EXPECT_LT(state(laser_uav_estimator::State::WZ), 0.0); // Negative yaw rate
-    EXPECT_LT(state(laser_uav_estimator::State::QZ), 0.0); // Negative yaw angle
+    EXPECT_LT(state(laser_uav_estimators::State::WZ), 0.0); // Negative yaw rate
+    EXPECT_LT(state(laser_uav_estimators::State::QZ), 0.0); // Negative yaw angle
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
 }
 
 /**
@@ -1076,14 +1076,14 @@ TEST_F(TestStateEstimator, PitchRotation)
     const auto &state = ekf->get_state();
 
     // Verify positive pitch rotation
-    EXPECT_GT(state(laser_uav_estimator::State::WY), 0.0); // Positive pitch rate
-    EXPECT_GT(state(laser_uav_estimator::State::QY), 0.0); // Positive pitch angle
+    EXPECT_GT(state(laser_uav_estimators::State::WY), 0.0); // Positive pitch rate
+    EXPECT_GT(state(laser_uav_estimators::State::QY), 0.0); // Positive pitch angle
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::WX), 0.0, STATE_TOLERANCE); // No roll rate
-    EXPECT_NEAR(state(laser_uav_estimator::State::WZ), 0.0, STATE_TOLERANCE); // No yaw rate
+    EXPECT_NEAR(state(laser_uav_estimators::State::QX), 0.0, STATE_TOLERANCE); // No roll attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::WX), 0.0, STATE_TOLERANCE); // No roll rate
+    EXPECT_NEAR(state(laser_uav_estimators::State::WZ), 0.0, STATE_TOLERANCE); // No yaw rate
 }
 
 /**
@@ -1130,14 +1130,14 @@ TEST_F(TestStateEstimator, RollRotation)
     const auto &state = ekf->get_state();
 
     // Verify positive roll rotation
-    EXPECT_GT(state(laser_uav_estimator::State::WX), 0.0); // Positive roll rate
-    EXPECT_GT(state(laser_uav_estimator::State::QX), 0.0); // Positive roll angle
+    EXPECT_GT(state(laser_uav_estimators::State::WX), 0.0); // Positive roll rate
+    EXPECT_GT(state(laser_uav_estimators::State::QX), 0.0); // Positive roll angle
 
     // Verify minimal cross-coupling in other axes
-    EXPECT_NEAR(state(laser_uav_estimator::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
-    EXPECT_NEAR(state(laser_uav_estimator::State::WY), 0.0, STATE_TOLERANCE); // No pitch rate
-    EXPECT_NEAR(state(laser_uav_estimator::State::WZ), 0.0, STATE_TOLERANCE); // No yaw rate
+    EXPECT_NEAR(state(laser_uav_estimators::State::QY), 0.0, STATE_TOLERANCE); // No pitch attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::QZ), 0.0, STATE_TOLERANCE); // No yaw attitude
+    EXPECT_NEAR(state(laser_uav_estimators::State::WY), 0.0, STATE_TOLERANCE); // No pitch rate
+    EXPECT_NEAR(state(laser_uav_estimators::State::WZ), 0.0, STATE_TOLERANCE); // No yaw rate
 }
 
 // =============================================================================
@@ -1190,10 +1190,10 @@ TEST_F(TestStateEstimator, Takeoff)
     const auto &state = ekf->get_state();
 
     // Verify successful altitude gain (takeoff achieved)
-    EXPECT_GT(state(laser_uav_estimator::State::PZ), 0.1);
+    EXPECT_GT(state(laser_uav_estimators::State::PZ), 0.1);
 
     // Verify stabilized vertical velocity (hover achieved)
-    EXPECT_NEAR(state(laser_uav_estimator::State::VZ), 0.0, 0.2);
+    EXPECT_NEAR(state(laser_uav_estimators::State::VZ), 0.0, 0.2);
 }
 
 /**
@@ -1232,7 +1232,7 @@ TEST_F(TestStateEstimator, Land)
     const auto state_before_land = ekf->get_state();
 
     // Verify successful takeoff before landing sequence
-    EXPECT_GT(state_before_land(laser_uav_estimator::State::PZ), 0.1);
+    EXPECT_GT(state_before_land(laser_uav_estimators::State::PZ), 0.1);
 
     // Phase 3: Controlled descent initiation
     run_simulation(Eigen::Vector4d::Constant(hover_thrust_per_motor - 2.0), 25, 0.02);
@@ -1242,13 +1242,13 @@ TEST_F(TestStateEstimator, Land)
     const auto state_after_land = ekf->get_state();
 
     // Verify descent occurred (altitude reduction)
-    EXPECT_LT(state_after_land(laser_uav_estimator::State::PZ), state_before_land(laser_uav_estimator::State::PZ));
+    EXPECT_LT(state_after_land(laser_uav_estimators::State::PZ), state_before_land(laser_uav_estimators::State::PZ));
 
     // Verify successful landing (near ground level)
-    EXPECT_NEAR(state_after_land(laser_uav_estimator::State::PZ), 0.0, 1e-6);
+    EXPECT_NEAR(state_after_land(laser_uav_estimators::State::PZ), 0.0, 1e-6);
 
     // Verify soft touchdown (minimal vertical velocity)
-    EXPECT_NEAR(state_after_land(laser_uav_estimator::State::VZ), 0.0, 1e-6);
+    EXPECT_NEAR(state_after_land(laser_uav_estimators::State::VZ), 0.0, 1e-6);
 }
 
 // =============================================================================
@@ -1293,7 +1293,7 @@ TEST_F(TestStateEstimator, IgnoreInvalidMeasurements)
     auto initial_state = ekf->get_state();
 
     // Create measurement package with invalid (NaN) data
-    laser_uav_estimator::MeasurementPackage invalid_measurement;
+    laser_uav_estimators::MeasurementPackage invalid_measurement;
     nav_msgs::msg::Odometry bad_odom;
     bad_odom.pose.pose.orientation.w = std::numeric_limits<double>::quiet_NaN();
     invalid_measurement.px4_odometry = bad_odom;
@@ -1341,7 +1341,7 @@ TEST_F(TestStateEstimator, CorrectionWithHighNoiseHasLittleEffect)
     auto covariance_before = ekf->get_covariance();
 
     // Create high-noise measurement package
-    laser_uav_estimator::MeasurementPackage noisy_measurement;
+    laser_uav_estimators::MeasurementPackage noisy_measurement;
     nav_msgs::msg::Odometry odom;
     odom.pose.pose.orientation.w = 1.0; // Valid orientation
 
@@ -1422,7 +1422,7 @@ TEST_F(TestStateEstimator, CovarianceDecreasesOverMultipleCorrections)
         ekf->predict(Eigen::Vector4d::Constant(hover_thrust_per_motor), dt);
 
         // Create high-quality measurement package
-        laser_uav_estimator::MeasurementPackage measurements;
+        laser_uav_estimators::MeasurementPackage measurements;
         nav_msgs::msg::Odometry odom;
         odom.pose.pose.orientation.w = 1.0; // Identity quaternion
 
@@ -1494,7 +1494,7 @@ TEST_F(TestStateEstimator, LongTermStability)
         // Periodic high-quality corrections (every 10 steps = 10 Hz measurement rate)
         if (i % 10 == 0)
         {
-            laser_uav_estimator::MeasurementPackage meas;
+            laser_uav_estimators::MeasurementPackage meas;
             nav_msgs::msg::Odometry odom;
             odom.pose.pose.orientation.w = 1.0; // Valid identity quaternion
 
@@ -1571,7 +1571,7 @@ TEST_F(TestStateEstimator, ExecutionTimeBenchmark)
     Eigen::Vector4d u_hover = Eigen::Vector4d::Constant(hover_thrust_per_motor);
 
     // Measurement package for correction timing
-    laser_uav_estimator::MeasurementPackage measurements;
+    laser_uav_estimators::MeasurementPackage measurements;
     nav_msgs::msg::Odometry odom_msg;
     odom_msg.pose.pose.orientation.w = 1.0;
 

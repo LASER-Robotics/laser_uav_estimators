@@ -4,11 +4,11 @@
  * @author Wagner Dantas Garcia / Laser UAV Team
  * @date September 10, 2025
  */
-#include <laser_uav_estimator/state_estimator.hpp>
+#include <laser_uav_estimators/state_estimator.hpp>
 #include <rclcpp/logging.hpp>
 #include <sstream> // Required for std::stringstream
 
-namespace laser_uav_estimator
+namespace laser_uav_estimators
 {
     /**
      * @brief Constructor for the StateEstimator class.
@@ -609,4 +609,4 @@ namespace laser_uav_estimator
         return q_att;
     }
 
-} // namespace laser_uav_estimator
+} // namespace laser_uav_estimators

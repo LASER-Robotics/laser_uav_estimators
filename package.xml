@@ -4,13 +4,13 @@
 <!--
 /**
  * @file package.xml
- * @brief ROS2 package configuration for laser_uav_estimator
+ * @brief ROS2 package configuration for laser_uav_estimators
  * @author Wagner Dantas Garcia / Laser UAV Team
  * @email wagnergarcia@eng.ci.ufpb.br
  * @date September 16, 2025
  * @copyright Apache License 2.0
  * 
- * @details This package.xml file defines the configuration for the laser_uav_estimator
+ * @details This package.xml file defines the configuration for the laser_uav_estimators
  * ROS2 package, which provides advanced state estimation capabilities for Unmanned 
  * Aerial Vehicle (UAV) systems. The package implements a sophisticated Extended Kalman 
  * Filter (EKF) that fuses multiple sensor sources to provide robust and accurate state 
@@ -54,7 +54,7 @@ https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-Your
 
 <package format="3">
   <!-- Package identification -->
-  <name>laser_uav_estimator</name>
+  <name>laser_uav_estimators</name>
   <version>0.0.0</version>
   <description>Advanced 13-state Extended Kalman Filter (EKF) for UAV state estimation, providing
     robust multi-sensor fusion of odometry sources (VIO, LIO, PX4) and IMU data for accurate

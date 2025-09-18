@@ -1,12 +1,12 @@
 # =============================================================================
 # @file CMakeLists.txt
-# @brief Build configuration for the laser_uav_estimator package
+# @brief Build configuration for the laser_uav_estimators package
 # @author Wagner Dantas Garcia / Laser UAV Team
 # @date September 16, 2025
 # @copyright Apache License 2.0
 # 
 # @details This CMakeLists.txt file defines the build configuration for the 
-# laser_uav_estimator ROS2 package. The package provides state estimation
+# laser_uav_estimators ROS2 package. The package provides state estimation
 # capabilities for UAV systems using Extended Kalman Filtering with multiple
 # sensor fusion including VIO, LIO, IMU, and GPS data sources.
 # 
@@ -34,7 +34,7 @@
 # and package identification.
 # =============================================================================
 cmake_minimum_required(VERSION 3.8)
-project(laser_uav_estimator)
+project(laser_uav_estimators)
 
 # =============================================================================
 # C++ Standard Configuration and Compiler Options
@@ -125,7 +125,7 @@ set(dependencies
 # =============================================================================
 # Main Library Definition
 # 
-# Creates the primary shared library for the laser_uav_estimator package.
+# Creates the primary shared library for the laser_uav_estimators package.
 # The library contains the StateEstimator class which implements:
 # - Extended Kalman Filter for multi-sensor state estimation
 # - Lifecycle node management for controlled operation
@@ -140,14 +140,14 @@ set(dependencies
 
 # Create the main estimation library
 # Library name matches the package name for consistency
-add_library(laser_uav_estimator SHARED
+add_library(laser_uav_estimators SHARED
   src/state_estimator.cpp  # Main StateEstimator implementation
 )
 
 # Configure include directories for the library
 # BUILD_INTERFACE: Available during build of this package
 # INSTALL_INTERFACE: Available to packages that depend on this one
-target_include_directories(laser_uav_estimator PUBLIC
+target_include_directories(laser_uav_estimators PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -155,14 +155,14 @@ target_include_directories(laser_uav_estimator PUBLIC
 # Link against mathematical libraries first
 # These libraries use traditional CMake linking approach
 # Must be called before ament_target_dependencies to avoid signature conflicts
-target_link_libraries(laser_uav_estimator
+target_link_libraries(laser_uav_estimators
   ${autodiff_LIBRARIES}  # Automatic differentiation library
   Eigen3::Eigen          # Linear algebra library
 )
 
 # Link against ROS2 dependencies using ament conventions
 # ament_target_dependencies handles ROS2-specific linking requirements
-ament_target_dependencies(laser_uav_estimator ${dependencies})
+ament_target_dependencies(laser_uav_estimators ${dependencies})
 
 # =============================================================================
 # Installation Configuration
@@ -183,7 +183,7 @@ ament_target_dependencies(laser_uav_estimator ${dependencies})
 # Install the main library and create export target
 # export_${PROJECT_NAME}: Allows other packages to import this library
 install(
-  TARGETS laser_uav_estimator  # Install the main library
+  TARGETS laser_uav_estimators  # Install the main library
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib      # Static libraries (.a files)
   LIBRARY DESTINATION lib      # Shared libraries (.so files)
@@ -225,8 +225,8 @@ ament_export_dependencies(${dependencies})
 ament_export_include_directories(include)
 
 # Export library name for simplified linking in dependent packages
-# Allows other packages to use: target_link_libraries(target laser_uav_estimator)
-ament_export_libraries(laser_uav_estimator)
+# Allows other packages to use: target_link_libraries(target laser_uav_estimators)
+ament_export_libraries(laser_uav_estimators)
 
 # =============================================================================
 # Testing Configuration
@@ -267,7 +267,7 @@ if(BUILD_TESTING)
   # Link test executable against the main library
   # This allows testing of internal library functions and classes
   target_link_libraries(test_state_estimator 
-    laser_uav_estimator  # Main library containing StateEstimator
+    laser_uav_estimators  # Main library containing StateEstimator
   )
   
   # Ensure test has access to all ROS2 dependencies

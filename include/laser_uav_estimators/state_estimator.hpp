@@ -5,8 +5,8 @@
  * @author Wagner Dantas Garcia / Laser UAV Team
  * @date September 10, 2025
  */
-#ifndef LASER_UAV_ESTIMATOR_STATE_ESTIMATOR_HPP
-#define LASER_UAV_ESTIMATOR_STATE_ESTIMATOR_HPP
+#ifndef LASER_UAV_ESTIMATORS_STATE_ESTIMATOR_HPP
+#define LASER_UAV_ESTIMATORS_STATE_ESTIMATOR_HPP
 
 #include <Eigen/Dense>
 #include <optional>
@@ -29,7 +29,7 @@
 #include <sstream>
 #include <cmath>
 
-namespace laser_uav_estimator
+namespace laser_uav_estimators
 {
     /**
      * @brief Namespace that defines the state vector indices for easy access
@@ -291,6 +291,6 @@ namespace laser_uav_estimator
         ProcessNoiseGains q_gains_;     ///< Gains for the process noise matrix (Q).
         MeasurementNoiseGains r_gains_; ///< Gains for the measurement noise matrix (R).
     };
-} // namespace laser_uav_estimator
+} // namespace laser_uav_estimators
 
-#endif // LASER_UAV_ESTIMATOR_state_estimator_HPP
+#endif // LASER_UAV_ESTIMATORS_state_estimator_HPP
