@@ -1,152 +1,76 @@
-# =============================================================================
-# @file state_estimator.yaml
-# @brief Configuration file for the StateEstimator node
-# @author Wagner Dantas Garcia / Laser UAV Team
-# @date September 16, 2025
-# @copyright Apache License 2.0
-# 
-# @details This YAML configuration file defines all configurable parameters 
-# for the 'estimation_manager' node. It contains settings for:
-# - EKF (Extended Kalman Filter) verbosity and behavior
-# - Drone physical parameters (mass, inertia, motor configuration)
-# - Process noise tuning for the prediction model
-# - Measurement noise tuning for different sensor sources
-# 
-# The file is loaded by the launch file and provides the necessary parameters
-# for robust multi-sensor state estimation in UAV applications.
-# 
-# @note All parameters are organized hierarchically under the ROS parameter
-# namespace for the estimation_manager node.
-# =============================================================================
 /**/**:
   ros__parameters:
-    # -------------------------------------------------------------------------
-    # General EKF Configuration
-    # -------------------------------------------------------------------------
+
+    frequency: 100.0 # Hz
+    frame_id: "uav1/fcu"
+
+    odometry_switch_distance_threshold: 0.5 # meters
+    odometry_switch_angle_threshold: 0.1 # radians
+    odometry_switch_velocity_linear_threshold: 0.1 # m/s
+    odometry_switch_velocity_angular_threshold: 0.1 # rad/s
+
+    initial_odometry_source: "fast_lio_odom"
+    odometry_source_names: ["px4_api_odom", "openvins_odom", "fast_lio_odom"]
     
-    # Verbosity level for the EKF library's internal logs
-    # Determines the amount of debug information printed during execution
-    # Options: "SILENT" - No output, "INFO" - Basic information, "DEBUG" - Detailed logs
-    ekf_verbosity: "INFO"
+    ekf_verbosity: "SILENT" # Options: SILENT, ERROR, WARNING, INFO, DEBUG, VERBOSE
 
-    # -------------------------------------------------------------------------
-    # Drone Physical Parameters
-    # -------------------------------------------------------------------------
-    # These values define the physical characteristics of the UAV and are used
-    # in the EKF's dynamic model for accurate prediction steps. All parameters
-    # should match the actual drone specifications for optimal performance.
     drone_params:
-      # Total mass of the drone including payload in kilograms
-      mass: 1.60
-      
-      # Distance from the drone's center of mass to each motor in meters
-      # Used for calculating torque effects from motor thrust differences
-      arm_length: 0.258
-      
-      # Motor thrust coefficient - relates motor command to actual thrust force
-      # This value may need calibration based on motor and propeller specifications
-      thrust_coefficient: 1.0
-      
-      # Motor torque coefficient - relates motor thrust to reactive torque
-      # Used for yaw dynamics calculation in the EKF prediction model
-      torque_coefficient: 0.059
-      
-      # Moment of inertia matrix [Ixx, Iyy, Izz] in kg*m^2
-      # Defines the drone's resistance to angular acceleration about each axis
-      # X: Roll axis, Y: Pitch axis, Z: Yaw axis
-      inertia: [0.021667, 0.021667, 0.0425]
+      mass: 1.60 # kg
+      arm_length: 0.258 # meters
+      inertia: [0.021667, 0.021667, 0.0425] # kg*m^2
+      G1: [ 1.0,    1.0,   1.0,    1.0,
+          -0.18,   0.18,  0.18,  -0.18,
+          -0.185, 0.185, -0.185, 0.185,
+          -0.016,  -0.016,  0.016,   0.016 ]
 
-      # Motor positions in the drone's body frame coordinate system
-      # Format: [x1, y1, x2, y2, x3, y3, x4, y4] in meters
-      # Positive X: Forward, Positive Y: Left (NED or FLU convention)
-      motor_positions: [
-         0.185, -0.18,  # Motor 0: Front-Right
-        -0.185,  0.18,  # Motor 1: Rear-Left  
-         0.185,  0.18,  # Motor 2: Front-Left
-        -0.185, -0.18   # Motor 3: Rear-Right
-      ]
-
-    # -------------------------------------------------------------------------
-    # Process Noise Gains (Dynamic Model Uncertainty)
-    # -------------------------------------------------------------------------
-    # These parameters control how much uncertainty is added to the state
-    # estimate during the prediction step. They reflect our confidence in
-    # the mathematical model's ability to predict the drone's behavior.
-    # 
-    # Higher values (> 1.0): Less trust in the model, uncertainty grows faster
-    # Lower values (< 1.0): More trust in the model, uncertainty grows slower
-    # 
-    # Tuning guidelines:
-    # - Start with conservative values (higher uncertainty)
-    # - Reduce if the model predictions are very accurate
-    # - Increase if external disturbances are common (wind, payload changes)
     process_noise_gains:
-      # Position uncertainty growth rate per prediction step
-      position: 0.001
-      
-      # Orientation (attitude) uncertainty growth rate per prediction step  
+      position: 0.1
       orientation: 0.01
-      
-      # Linear velocity uncertainty growth rate per prediction step
-      linear_velocity: 0.01
-      
-      # Angular velocity uncertainty growth rate per prediction step
+      linear_velocity: 0.1
       angular_velocity: 0.1
 
-    # -------------------------------------------------------------------------
-    # Measurement Noise Gains (Sensor Trust Levels)
-    # -------------------------------------------------------------------------
-    # These parameters control how much the filter trusts each sensor's
-    # measurements during the correction step. They should reflect the
-    # actual accuracy and reliability of each sensor.
-    # 
-    # Higher values (> 1.0): Less trust in sensor, filter relies more on prediction
-    # Lower values (< 1.0): More trust in sensor, filter adjusts more toward measurement
-    # 
-    # Tuning guidelines:
-    # - Set based on sensor specifications and observed performance
-    # - Consider environmental factors (lighting for cameras, magnetic interference for IMU)
-    # - Balance between responsiveness and stability
     measurement_noise_gains:
-      
-      # PX4 Autopilot Odometry (Internal estimator output)
-      # Usually provides fused estimates from multiple sensors
       px4_odometry:
-        position: 0.0001          # High trust - PX4 has good position estimates
-        orientation: 0.001        # High trust - IMU-based attitude is typically reliable
-        linear_velocity: 0.01     # Moderate trust - Velocity estimates can have lag
-        angular_velocity: 0.01    # Moderate trust - Direct IMU measurement
-      
-      # OpenVINS (Visual-Inertial Odometry)
-      # Provides pose estimates by fusing camera and IMU data
+        position: 0.001
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.01
       openvins:
-        position: 0.0001          # High trust - VIO is accurate in good lighting
-        orientation: 0.001        # High trust - Good attitude estimation
-        linear_velocity: 0.01     # Moderate trust - Can be noisy in some conditions
-        angular_velocity: 0.1     # Lower trust - Less direct measurement
-      
-      # FAST-LIO (LiDAR-Inertial Odometry)  
-      # Provides pose estimates by fusing LiDAR and IMU data
+        position: 0.001
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.1
       fast_lio:
-        position: 0.0001          # High trust - LiDAR provides accurate positioning
-        orientation: 0.001        # High trust - Good attitude from IMU fusion
-        linear_velocity: 0.01     # Moderate trust - Computed from pose differences
-        angular_velocity: 0.1     # Lower trust - Less direct measurement
-      
-      # Raw IMU (Inertial Measurement Unit)
-      # Provides direct angular velocity measurements
-      # Note: Position and orientation corrections from raw IMU are typically not used
+        position: 0.01
+        orientation: 0.01
+        linear_velocity: 0.3
+        angular_velocity: 0.3
       imu:
-        angular_velocity: 0.1     # Moderate trust - Direct measurement but can be noisy
-        position: 0.1             # Not used - IMU doesn't provide position
-        orientation: 0.1          # Not used - Raw IMU attitude drifts significantly  
-        linear_velocity: 0.1      # Not used - IMU doesn't directly measure velocity
-      
-      # GPS (Global Positioning System)
-      # Provides absolute position reference in global coordinates
-      # Note: Only position is typically used from GPS
+        position: 0.1
+        orientation: 0.1
+        linear_velocity: 0.1
+        angular_velocity: 0.01
       gps:
-        position: 0.1             # Moderate trust - Depends on satellite coverage and accuracy
-        orientation: 0.1          # Not used - GPS doesn't provide orientation
-        linear_velocity: 0.1      # Not used - GPS velocity can be noisy
-        angular_velocity: 0.1     # Not used - GPS doesn't provide angular rates
+        position: 0.1
+        orientation: 0.1
+        linear_velocity: 0.1
+        angular_velocity: 0.1
+
+    px4_odom_tolerance: 0.015 # seconds
+    px4_odom_timeout: 0.5 # seconds
+    px4_odom_covariance: 0.5
+
+    openvins_odom_tolerance: 0.0075 # seconds
+    openvins_odom_timeout: 1.0 # seconds
+    openvins_odom_covariance: 0.5
+
+    fast_lio_odom_tolerance: 0.025 # seconds
+    fast_lio_odom_timeout: 1.0 # seconds
+    fast_lio_odom_covariance: 0.5
+
+    imu_tolerance: 0.015 # seconds
+    imu_timeout: 0.5 # seconds
+    imu_covariance: 0.5
+    
+    control_tolerance: 0.015 # seconds
+    control_timeout: 0.5 # seconds
