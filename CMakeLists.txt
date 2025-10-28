@@ -51,7 +51,6 @@ target_include_directories(laser_uav_estimators PUBLIC
 target_link_libraries(laser_uav_estimators
   ${autodiff_LIBRARIES}
   Eigen3::Eigen
-  /home/wagner/laser_uav_system_ws/install/laser_uav_lib/lib/libekf.a
 )
 
 ament_target_dependencies(laser_uav_estimators ${dependencies})
