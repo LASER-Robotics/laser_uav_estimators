@@ -128,9 +128,9 @@ private:
 
   void update_Q_matrix();
 
-  int  processOdometryMeasurement(const nav_msgs::msg::Odometry &odom, const ProcessNoiseGains &gains, Eigen::MatrixXd &H, Eigen::VectorXd &z,
-                                  Eigen::MatrixXd &R, int current_row);
-  void processImuMeasurement(const sensor_msgs::msg::Imu &imu, double dt, Eigen::MatrixXd &H, Eigen::VectorXd &z, Eigen::MatrixXd &R, int current_row);
+  int processOdometryMeasurement(const nav_msgs::msg::Odometry &odom, const ProcessNoiseGains &gains, Eigen::MatrixXd &H, Eigen::VectorXd &z,
+                                 Eigen::MatrixXd &R, int current_row);
+  int processImuMeasurement(const sensor_msgs::msg::Imu &imu, double dt, Eigen::MatrixXd &H, Eigen::VectorXd &z, Eigen::MatrixXd &R, int current_row);
 
   Eigen::Vector3d IntegrateVelocityRK4(const Eigen::Vector3d &current_velocity, const Eigen::Vector3d &linear_acceleration, double delta_t);
 
