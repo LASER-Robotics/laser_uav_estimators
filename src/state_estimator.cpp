@@ -435,40 +435,6 @@ int StateEstimator::processOdometryMeasurement(const nav_msgs::msg::Odometry &od
 int StateEstimator::processImuMeasurement(const sensor_msgs::msg::Imu &imu, double dt, Eigen::MatrixXd &H, Eigen::VectorXd &z, Eigen::MatrixXd &R,
                                           int current_row) {
 
-  // --- Orientação ---
-  if (!std::isnan(imu.orientation.w)) {
-    constexpr int ORI_MEASUREMENTS = 4;
-    H.block<ORI_MEASUREMENTS, ORI_MEASUREMENTS>(current_row, State::QW).setIdentity();
-    z.segment<ORI_MEASUREMENTS>(current_row) << imu.orientation.w, imu.orientation.x, imu.orientation.y, imu.orientation.z;
-
-    Eigen::Map<const Eigen::Matrix3d> orientation_cov(imu.orientation_covariance.data());
-    R(current_row, current_row)                     = r_gains_.imu.orientation;  // Covariância para W
-    R.block<3, 3>(current_row + 1, current_row + 1) = orientation_cov + Eigen::Matrix3d::Identity() * r_gains_.imu.orientation;
-
-    current_row += ORI_MEASUREMENTS;
-  }
-
-  if (!std::isnan(imu.linear_acceleration.x)) {
-    constexpr int VEL_MEASUREMENTS = 3;
-
-    // Cálculos necessários apenas para esta medição
-    const Eigen::Vector3d    current_velocity = x_old_.segment<3>(State::VX);
-    const Eigen::Vector3d    acceleration{imu.linear_acceleration.x, imu.linear_acceleration.y, imu.linear_acceleration.z};
-    const Eigen::Vector3d    g_inertial(0.0, 0.0, GRAVITY);
-    const Eigen::Quaterniond q_state(x_old_(State::QW), x_old_(State::QX), x_old_(State::QY), x_old_(State::QZ));
-    const Eigen::Vector3d    g_body                     = q_state.toRotationMatrix().transpose() * g_inertial;
-    const Eigen::Vector3d    acceleration_body_frame    = acceleration - g_body;  // Esta variável não estava sendo usada no seu código original
-    const Eigen::Vector3d    velocity_from_acceleration = IntegrateVelocityRK4(current_velocity, acceleration, dt);  // O original usava 'acceleration' crua
-
-    H.block<VEL_MEASUREMENTS, VEL_MEASUREMENTS>(current_row, State::VX).setIdentity();
-    z.segment<VEL_MEASUREMENTS>(current_row) << velocity_from_acceleration.x(), velocity_from_acceleration.y(), velocity_from_acceleration.z();
-
-    Eigen::Map<const Eigen::Matrix3d> linear_accel_cov(imu.linear_acceleration_covariance.data());
-    R.block<VEL_MEASUREMENTS, VEL_MEASUREMENTS>(current_row, current_row) = linear_accel_cov + Eigen::Matrix3d::Identity() * r_gains_.imu.linear_velocity;
-
-    current_row += VEL_MEASUREMENTS;
-  }
-
   if (!std::isnan(imu.angular_velocity.x)) {
     constexpr int ANG_MEASUREMENTS = 3;
     H.block<ANG_MEASUREMENTS, ANG_MEASUREMENTS>(current_row, State::WX).setIdentity();
