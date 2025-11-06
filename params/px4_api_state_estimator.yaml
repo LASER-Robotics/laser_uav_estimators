@@ -10,8 +10,8 @@
     measurement_noise_gains:
       px4_odometry:
         position: 0.001
-        orientation: 0.01
-        linear_velocity: 0.1
-        angular_velocity: 0.1
+        orientation: 0.001
+        linear_velocity: 0.01
+        angular_velocity: 0.01
       imu:
         angular_velocity: 0.01
