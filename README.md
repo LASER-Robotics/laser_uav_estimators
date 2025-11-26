@@ -1,6 +1,6 @@
 # LASER UAV Estimators
 
-This package provides **C++ classes** and **ROS 2 nodes** responsible for the state estimation of the Laser UAV System (LUS), translating sensor data into accurate odometry.
+This package provides **C++ classes** responsible for the state estimation of the Laser UAV System (LUS), translating sensor data into accurate odometry.
 
 ## Overview and Algorithms
 
