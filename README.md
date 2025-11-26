@@ -9,10 +9,8 @@ The main objective of this package is to provide a robust estimation loop capabl
 ### State Estimator
 -   **Description:** Implements an Extended Kalman Filter (EKF) that utilizes a dynamic model of the UAV for state prediction and corrects it using available sensor measurements. It handles data from diverse sources such as PX4 odometry, OpenVINS, FastLIO, and IMU data to compute the drone's position, orientation, and velocity. This node organizes the prediction and correction steps of the filter to provide a fused state estimate.
 
--   **Reference:**
-    ```bibtex
-    S. Thrun, W. Burgard, and D. Fox, Probabilistic Robotics. MIT Press, 2005.
-    ```
+-   **Reference:** Thrun, W. Burgard, and D. Fox, Probabilistic Robotics. MIT Press, 2005.
+
 -   **Configurable Parameters:**
     ```yaml
     state_estimator:
