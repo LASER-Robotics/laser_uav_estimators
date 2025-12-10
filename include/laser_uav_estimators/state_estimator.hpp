@@ -13,6 +13,8 @@
 #include <laser_uav_lib/kalman_filter/ekf/ekf.hpp>
 #include <laser_uav_lib/kalman_filter/kalman_filter.hpp>
 #include <laser_uav_lib/attitude_converter/attitude_converter.hpp>
+#include <laser_uav_lib/kalman_filter/imu_propagator/imu_propagator.hpp>
+#include <laser_uav_lib/filter/irr_filter.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/logging.hpp>
@@ -77,7 +79,11 @@ struct MeasurementNoiseGains
 
 class StateEstimator : public laser_uav_lib::EKF<STATES, Eigen::Dynamic, Eigen::Dynamic> {
 public:
-  StateEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const std::string &verbosity = "INFO");
+  // StateEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const std::string &verbosity = "INFO");
+  StateEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const std::string &verbosity = "INFO",
+                 const std::vector<double> &irr_position_a = {1.0, -1.0}, const std::vector<double> &irr_position_b = {-0.0, 0.0},
+                 const std::vector<double> &irr_velocity_a = {1.0, -1.0}, const std::vector<double> &irr_velocity_b = {-0.0, 0.0},
+                 const std::vector<double> &irr_angular_velocity_a = {1.0, -1.0}, const std::vector<double> &irr_angular_velocity_b = {-0.0, 0.0});
 
   ~StateEstimator() = default;
 
@@ -138,9 +144,9 @@ private:
 
   Eigen::Matrix<double, STATES, 1> x_old_;
 
-  int                                      n_inputs_;
   double                                   mass_;
   Eigen::Matrix<double, 4, Eigen::Dynamic> allocation_matrix_;
+  int                                      n_inputs_;
   Eigen::Matrix3d                          inertia_tensor_;
   Eigen::Matrix3d                          inertia_tensor_inv_;
   static constexpr double                  GRAVITY = 9.80665;
@@ -151,6 +157,26 @@ private:
 
   ProcessNoiseGains     q_gains_;
   MeasurementNoiseGains r_gains_;
+
+  laser_uav_lib::ImuPropagator imu_propagator_;
+
+  std::vector<double>      irr_position_a_;
+  std::vector<double>      irr_position_b_;
+  laser_uav_lib::IIRFilter pos_x_filter_;
+  laser_uav_lib::IIRFilter pos_y_filter_;
+  laser_uav_lib::IIRFilter pos_z_filter_;
+
+  std::vector<double>      irr_velocity_a_;
+  std::vector<double>      irr_velocity_b_;
+  laser_uav_lib::IIRFilter vel_x_filter_;
+  laser_uav_lib::IIRFilter vel_y_filter_;
+  laser_uav_lib::IIRFilter vel_z_filter_;
+
+  std::vector<double>      irr_angular_velocity_a_;
+  std::vector<double>      irr_angular_velocity_b_;
+  laser_uav_lib::IIRFilter ang_vel_x_filter_;
+  laser_uav_lib::IIRFilter ang_vel_y_filter_;
+  laser_uav_lib::IIRFilter ang_vel_z_filter_;
 };
 }  // namespace laser_uav_estimators
 

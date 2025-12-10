@@ -3,52 +3,54 @@
 
     process_noise_gains:
       position: 0.1
-      orientation: 0.1
-      linear_velocity: 0.5
+      orientation: 0.01
+      linear_velocity: 0.1
       angular_velocity: 0.1
 
     measurement_noise_gains:
       fast_lio:
-        position: 0.01
+        position: 0.001
         orientation: 0.01
-        linear_velocity: 0.01
+        linear_velocity: 0.005
       imu:
         orientation: 0.01
-        linear_velocity: 0.1
+        linear_velocity: 0.01
         angular_velocity: 0.05
 
     imu_filter:
       acc_iir:
-        enabled: false
+        enabled: true
         # Butterworth low-pass, 1st order, 100 Hz sampling frequency, 10 Hz cutoff
         a: [1.0, -0.5095]
         b: [0.2452, 0.2452]
 
       acc_notch:
-        enabled: false
+        enabled: true
         sampling_rate: 1000.0
         frequencies: [100.0, 200.0, 300.0]
         bandwidth: 100.0
 
       gyro_iir:
-        enabled: false
+        enabled: true
         # Butterworth low-pass, 1st order, 200 Hz sampling frequency, 10 Hz cutoff
         a: [1.0, -0.7265]
         b: [0.1367, 0.1367]
 
       gyro_notch:
-        enabled: false
+        enabled: true
         sampling_rate: 1000.0
         frequencies: [100.0, 200.0, 300.0]
         bandwidth: 100.0
 
     irr_filters:
       position:
-        a: [1.0, -0.70]
-        b: [0.30]
+        a: [1.0, -0.50]
+        b: [0.50]
       velocity:
-        a: [1.0]
-        b: [1.0] 
+        a: [1.0, -0.70]
+        b: [0.30] 
       angular_velocity:
-        a: [1.0, -0.90]
-        b: [0.10]
+        a: [1.0, -0.7265]
+        b: [0.1367, 0.1367]
+        # a: [1.0, -0.70]
+        # b: [0.30]
