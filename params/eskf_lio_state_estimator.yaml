@@ -1,0 +1,39 @@
+/**/**:
+  ros__parameters:
+
+
+    ekf_verbosity: "DEBUG" # Options: SILENT, ERROR, WARNING, INFO, DEBUG, VERBOSE
+
+    process_noise_gains:
+      # velocity: 0.186       # σ_v
+      velocity: 0.186       # σ_v
+      # orientation: 0.18665 # σ_θ
+      orientation: 0.03733 # σ_θ
+      # accelerometer: 0.6    # σ_a (bias RW)
+      accelerometer: 0.6    # σ_a (bias RW)
+      # gyroscope: 0.038785  # σ_ω (bias RW)
+      gyroscope: 0.007757  # σ_ω (bias RW)
+
+
+    measurement_noise_gains:
+      fast_lio:
+        position: 0.05
+        orientation: 0.001
+        linear_velocity: 0.001
+        angular_velocity: 0.01
+      # fast_lio:
+      #   position: 0.05
+      #   orientation: 0.05
+      #   linear_velocity: 0.1
+      #   angular_velocity: 0.01
+        
+    limits:
+      lio:
+        position:
+          x: 0.4
+          y: 0.4
+          z: 0.4
+        orientation: 
+          roll: 0.1
+          pitch: 0.1
+          yaw: 0.1
