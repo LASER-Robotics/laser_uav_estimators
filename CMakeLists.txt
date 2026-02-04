@@ -47,6 +47,7 @@ set(dependencies
 add_library(laser_uav_estimators SHARED
   src/state_estimator.cpp
   src/eskf_state_estimator.cpp
+  src/mekf_state_estimator.cpp
 )
 
 target_include_directories(laser_uav_estimators PUBLIC

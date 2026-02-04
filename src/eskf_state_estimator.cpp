@@ -93,13 +93,11 @@ void ErrorStateEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, doub
   Eigen::Vector3d    w_b = x_nominal_.segment<3>(StateNominal::BGX);
   Eigen::Vector3d    g   = x_nominal_.segment<3>(StateNominal::GX);
 
-  // ...existing code...
-
   // 3. Atualização do Estado Nominal (Equações 1, 2 e 3)
   // v = v + (R(q)*(a_m - a_b) + g) * dt
-  Eigen::Matrix3d R             = q.toRotationMatrix();
-  Eigen::Vector3d acc_corrigida = R * (a_m - a_b) + g;
+  Eigen::Matrix3d R = q.toRotationMatrix();
 
+  Eigen::Vector3d acc_corrigida = R * (a_m - a_b) + g;
   // p = p + v*dt + 0.5*acc*dt^2
   x_nominal_.segment<3>(StateNominal::PX) = p + v * dt + 0.5 * acc_corrigida * dt * dt;
   x_nominal_.segment<3>(StateNominal::VX) = v + acc_corrigida * dt;
@@ -152,8 +150,6 @@ void ErrorStateEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, doub
   Qw.block<3, 3>(6, 6)             = Eigen::Matrix3d::Identity() * std::pow(_default_gains_.accelerometer, 2) * dt * dt;  // Variância do bias accel
   Qw.block<3, 3>(9, 9)             = Eigen::Matrix3d::Identity() * std::pow(_default_gains_.gyroscope, 2) * dt * dt;      // Variância do bias gyro
 
-  std::cout << "Qw: \n" << Qw << std::endl;
-
   // Matriz de mapeamento de ruído Fw (Eq. 13)
   Eigen::MatrixXd Fw    = Eigen::MatrixXd::Zero(NUM_STATES_ERROR, 12);
   Fw.block<3, 3>(3, 0)  = Eigen::Matrix3d::Identity();
@@ -186,7 +182,7 @@ void ErrorStateEstimator::correct(const MeasurementPackage &measurements) {
 
   RCLCPP_DEBUG_STREAM(logger_, "[correct] delta_x_ (antes):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << delta_x_.segment<3>(StateError::PX).transpose());
-  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::DROLL).transpose());
+  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::ROLL).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Lin. Vel: " << delta_x_.segment<3>(StateError::VX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Gyro: " << delta_x_.segment<3>(StateError::DBGX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Acc: " << delta_x_.segment<3>(StateError::DBAX).transpose());
@@ -245,7 +241,7 @@ void ErrorStateEstimator::correct(const MeasurementPackage &measurements) {
 
   RCLCPP_DEBUG_STREAM(logger_, "[correct] delta_x_ (depois):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << delta_x_.segment<3>(StateError::PX).transpose());
-  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::DROLL).transpose());
+  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::ROLL).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Lin. Vel: " << delta_x_.segment<3>(StateError::VX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Gyro: " << delta_x_.segment<3>(StateError::DBGX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Acc: " << delta_x_.segment<3>(StateError::DBAX).transpose());
@@ -304,8 +300,7 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
   // ============================================================
   Eigen::Vector3d p_pred = q_drift.toRotationMatrix() * p_uav + p_drift;
   Eigen::Vector3d y_p    = p_mv - p_pred;
-  RCLCPP_DEBUG(logger_, "[apply_odometry_correction] y_p: [%f, %f, %f]", y_p.x(), y_p.y(), y_p.z());
-  Eigen::MatrixXd Hp = Eigen::MatrixXd::Zero(3, NUM_STATES_ERROR);
+  Eigen::MatrixXd Hp     = Eigen::MatrixXd::Zero(3, NUM_STATES_ERROR);
 
   // δp
   Hp.block<3, 3>(0, StateError::PX) = q_drift.toRotationMatrix();
@@ -329,11 +324,10 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
     // log(R)^vee = axis * angle
     y_theta = aa.axis() * angle;
   }
-  RCLCPP_DEBUG(logger_, "[apply_odometry_correction] y_theta: [%f, %f, %f] (angle: %f)", y_theta.x(), y_theta.y(), y_theta.z(), angle);
   Eigen::MatrixXd Htheta = Eigen::MatrixXd::Zero(3, NUM_STATES_ERROR);
 
   // δθ do UAV
-  Htheta.block<3, 3>(0, StateError::DROLL) = Eigen::Matrix3d::Identity();
+  Htheta.block<3, 3>(0, StateError::ROLL) = Eigen::Matrix3d::Identity();
 
   // δθ_i do sensor (IMPORTANTE: Rᵀ{q_mv})
   Htheta.block<3, 3>(0, sensor_base + 3) = q_mv.toRotationMatrix().transpose();
@@ -349,7 +343,6 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
   Eigen::Vector3d v_pred = R.transpose() * v_uav;
   // Inovação
   Eigen::Vector3d y_v = v_mv - v_pred;
-  RCLCPP_DEBUG(logger_, "[apply_odometry_correction] y_v: [%f, %f, %f]", y_v.x(), y_v.y(), y_v.z());
 
   // Jacobiano
   Eigen::MatrixXd Hv = Eigen::MatrixXd::Zero(3, NUM_STATES_ERROR);
@@ -358,14 +351,13 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
   Hv.block<3, 3>(0, 3) = R.transpose();
 
   // δθ (erro de orientação)
-  // Hv.block<3, 3>(0, 6) = -R.transpose() * skew_symmetric(v_uav);
+  Hv.block<3, 3>(0, 6) = -R.transpose() * skew_symmetric(v_uav);
 
   // ============================================================
   // FUSÃO
   // ============================================================
   Eigen::VectorXd y(9);
   y << y_p, y_v, y_theta;
-
   Eigen::MatrixXd H                  = Eigen::MatrixXd::Zero(9, NUM_STATES_ERROR);
   H.block(0, 0, 3, NUM_STATES_ERROR) = Hp;
   H.block(3, 0, 3, NUM_STATES_ERROR) = Hv;
@@ -374,14 +366,27 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
   V.block<3, 3>(0, 0)                = gains.odom[sensor_idx].position * gains.odom[sensor_idx].position * Eigen::Matrix3d::Identity();
   V.block<3, 3>(3, 3)                = gains.odom[sensor_idx].velocity_linear * gains.odom[sensor_idx].velocity_linear * Eigen::Matrix3d::Identity();
   V.block<3, 3>(6, 6)                = gains.odom[sensor_idx].orientation * gains.odom[sensor_idx].orientation * Eigen::Matrix3d::Identity();
-
-  Eigen::MatrixXd K = P_ * H.transpose() * (H * P_ * H.transpose() + V).inverse();
-
-  // Note o uso de _STREAM e dos operadores <<
   RCLCPP_DEBUG_STREAM(logger_, "[apply_odometry_correction] y:");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << y.segment<3>(0).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Lin. Vel: " << y.segment<3>(3).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " └ Angle:    " << y.segment<3>(6).transpose());
+
+  // Eigen::VectorXd y(6);
+  // y << y_p, y_theta;
+  // Eigen::MatrixXd H                  = Eigen::MatrixXd::Zero(6, NUM_STATES_ERROR);
+  // H.block(0, 0, 3, NUM_STATES_ERROR) = Hp;
+  // H.block(3, 0, 3, NUM_STATES_ERROR) = Htheta;
+  // Eigen::MatrixXd V                  = Eigen::MatrixXd::Zero(6, 6);
+  // V.block<3, 3>(0, 0)                = gains.odom[sensor_idx].position * gains.odom[sensor_idx].position * Eigen::Matrix3d::Identity();
+  // V.block<3, 3>(3, 3)                = gains.odom[sensor_idx].orientation * gains.odom[sensor_idx].orientation * Eigen::Matrix3d::Identity();
+  // RCLCPP_DEBUG_STREAM(logger_, "[apply_odometry_correction] y:");
+  // RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << y.segment<3>(0).transpose());
+  // RCLCPP_DEBUG_STREAM(logger_, " └ Angle:    " << y.segment<3>(3).transpose());
+
+  Eigen::MatrixXd K = P_ * H.transpose() * (H * P_ * H.transpose() + V).inverse();
+
+  // Note o uso de _STREAM e dos operadores <<
+
   RCLCPP_DEBUG(logger_, "[apply_odometry_correction] K (trace): %f", K.trace());
 
   if (delta_x_.size() == (K * y).size()) {
@@ -452,8 +457,8 @@ nav_msgs::msg::Odometry ErrorStateEstimator::get_odometry() const {
   // Covariância da Pose (6x6) baseada na matriz P do filtro
   for (int i = 0; i < 6; ++i) {
     for (int j = 0; j < 6; ++j) {
-      int idx_i                       = (i < 3) ? StateError::PX + i : StateError::DROLL + (i - 3);
-      int idx_j                       = (j < 3) ? StateError::PX + j : StateError::DROLL + (j - 3);
+      int idx_i                       = (i < 3) ? StateError::PX + i : StateError::ROLL + (i - 3);
+      int idx_j                       = (j < 3) ? StateError::PX + j : StateError::ROLL + (j - 3);
       odom.pose.covariance[i * 6 + j] = P_(idx_i, idx_j);
     }
   }
@@ -482,7 +487,7 @@ void ErrorStateEstimator::inject_error_and_reset() {
 
   RCLCPP_DEBUG_STREAM(logger_, "[inject_error_and_reset] delta_x_ (antes):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << delta_x_.segment<3>(StateError::PX).transpose());
-  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::DROLL).transpose());
+  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::ROLL).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Lin. Vel: " << delta_x_.segment<3>(StateError::VX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Gyro: " << delta_x_.segment<3>(StateError::DBGX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Acc: " << delta_x_.segment<3>(StateError::DBAX).transpose());
@@ -500,7 +505,7 @@ void ErrorStateEstimator::inject_error_and_reset() {
 
   // 2. Orientação (Composição de Quatérnios: q = q * q{delta_theta})
   // O artigo trata delta_theta como um vetor de erro no espaço tangente.
-  Eigen::Vector3d delta_theta = delta_x_.segment<3>(StateError::DROLL);
+  Eigen::Vector3d delta_theta = delta_x_.segment<3>(StateError::ROLL);
 
   if (delta_theta.norm() > 1e-9) {
     Eigen::Quaterniond q_nominal(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
@@ -593,7 +598,7 @@ void ErrorStateEstimator::inject_error_and_reset() {
 
   RCLCPP_DEBUG_STREAM(logger_, "[inject_error_and_reset] delta_x_ (depois):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << delta_x_.segment<3>(StateError::PX).transpose());
-  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::DROLL).transpose());
+  RCLCPP_DEBUG_STREAM(logger_, " ├ Angle:     " << delta_x_.segment<3>(StateError::ROLL).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Lin. Vel: " << delta_x_.segment<3>(StateError::VX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Gyro: " << delta_x_.segment<3>(StateError::DBGX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Bias Acc: " << delta_x_.segment<3>(StateError::DBAX).transpose());

@@ -64,9 +64,9 @@ enum
   VX         = 3,
   VY         = 4,
   VZ         = 5,
-  DROLL      = 6,
-  DPITCH     = 7,
-  DYAW       = 8,  // delta_theta (angle-axis)
+  ROLL       = 6,
+  PITCH      = 7,
+  YAW        = 8,  // delta_theta (angle-axis)
   DBAX       = 9,
   DBAY       = 10,
   DBAZ       = 11,
