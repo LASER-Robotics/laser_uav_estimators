@@ -63,14 +63,15 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
   Eigen::Matrix<double, 4, 1> force_body = _allocation_matrix_ * u;
   double                      thrust     = force_body(0);
   Eigen::Vector3d             tau        = force_body.segment<3>(1);
-  Eigen::Vector3d             bz         = R_body_to_inertial * Eigen::Vector3d(0.0, 0.0, 1.0);
+  Eigen::Vector3d             bz         = Eigen::Vector3d(0.0, 0.0, 1.0);
   Eigen::Vector3d             ez         = Eigen::Vector3d(0.0, 0.0, 1.0);
 
+  Eigen::Vector3d aW = R_body_to_inertial * ((thrust / _mass_) * bz) + ((-GRAVITY) * ez);
 
-  Eigen::Vector3d position_predict =
-      position + (dt * R_body_to_inertial * linear_velocity) + ((0.5 * dt * dt) * (R_body_to_inertial * thrust / _mass_ * bz - GRAVITY * ez));
+  Eigen::Vector3d position_predict = position + (dt * R_body_to_inertial * linear_velocity) + ((0.5 * dt * dt) * aW);
+
   Eigen::Vector3d linear_velocity_predict =
-      linear_velocity + dt * (thrust / _mass_ * bz - R_body_to_inertial.transpose() * GRAVITY * ez - angular_velocity.cross(linear_velocity));
+      linear_velocity + dt * (((thrust / _mass_) * bz) + (R_body_to_inertial.transpose() * (-GRAVITY) * ez) - angular_velocity.cross(linear_velocity));
 
   // Propagação correta da orientação usando ExpSO3Quaternion
   Eigen::Vector3d    half_theta_vec      = dt * angular_velocity;
@@ -95,19 +96,28 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
   Fx.block<3, 3>(StateError::PX, StateError::VX) = dt * R_body_to_inertial;
   Fx.block<3, 3>(StateError::PX, StateError::ROLL) =
       -dt * R_body_to_inertial * skew_symmetric(linear_velocity) - (0.5 * dt * dt * R_body_to_inertial * skew_symmetric((thrust / _mass_) * bz));
-  Fx.block<3, 3>(StateError::VX, StateError::VX)     = Eigen::Matrix3d::Identity() - dt * skew_symmetric(angular_velocity);
-  Fx.block<3, 3>(StateError::VX, StateError::ROLL)   = -dt * skew_symmetric(R_body_to_inertial.transpose() * GRAVITY * ez);
-  Fx.block<3, 3>(StateError::VX, StateError::WX)     = -dt * skew_symmetric(linear_velocity);
+
+  Fx.block<3, 3>(StateError::VX, StateError::VX)   = Eigen::Matrix3d::Identity() - dt * skew_symmetric(angular_velocity);
+  Fx.block<3, 3>(StateError::VX, StateError::ROLL) = -dt * skew_symmetric(R_body_to_inertial.transpose() * (-GRAVITY) * ez);
+  Fx.block<3, 3>(StateError::VX, StateError::WX)   = -dt * skew_symmetric(linear_velocity);
+
   Fx.block<3, 3>(StateError::ROLL, StateError::ROLL) = Eigen::Matrix3d::Identity() - dt * skew_symmetric(angular_velocity);
   Fx.block<3, 3>(StateError::ROLL, StateError::WX)   = dt * Eigen::Matrix3d::Identity();
-  Fx.block<3, 3>(StateError::WX, StateError::WX) =
-      Eigen::Matrix3d::Identity() - (dt * _inertia_.inverse() * (skew_symmetric(_inertia_ * angular_velocity) - skew_symmetric(angular_velocity) * _inertia_));
 
-  Eigen::MatrixXd Q                                 = Eigen::MatrixXd::Identity(12, 12);
-  Q.block<3, 3>(StateError::PX, StateError::PX)     = Eigen::Matrix3d::Identity() * _default_gains_.position;
+  Fx.block<3, 3>(StateError::WX, StateError::WX) =
+      Eigen::Matrix3d::Identity() - (dt * _inertia_.inverse() * (skew_symmetric(angular_velocity) * _inertia_ - skew_symmetric(_inertia_ * angular_velocity)));
+
+  Eigen::MatrixXd Q = Eigen::MatrixXd::Identity(12, 12);
+
+  Q.block<2, 2>(StateError::PX, StateError::PX) = Eigen::Matrix2d::Identity() * _default_gains_.position_xy;
+  Q(StateError::PZ, StateError::PZ)             = 1.0 * _default_gains_.position_z;
+
   Q.block<3, 3>(StateError::ROLL, StateError::ROLL) = Eigen::Matrix3d::Identity() * _default_gains_.orientation;
-  Q.block<3, 3>(StateError::VX, StateError::VX)     = Eigen::Matrix3d::Identity() * _default_gains_.velocity_linear;
-  Q.block<3, 3>(StateError::WX, StateError::WX)     = Eigen::Matrix3d::Identity() * _default_gains_.velocity_angular;
+
+  Q.block<2, 2>(StateError::VX, StateError::VX) = Eigen::Matrix2d::Identity() * _default_gains_.velocity_linear_xy;
+  Q(StateError::VZ, StateError::VZ)             = 1.0 * _default_gains_.velocity_linear_z;
+
+  Q.block<3, 3>(StateError::WX, StateError::WX) = Eigen::Matrix3d::Identity() * _default_gains_.velocity_angular;
 
 
   if (is_debug_) {
@@ -188,16 +198,32 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
   y.segment<3>(StateError::VX) = z.segment<3>(StateNominal::VX) - h.segment<3>(StateNominal::VX);
   y.segment<3>(StateError::WX) = z.segment<3>(StateNominal::WX) - h.segment<3>(StateNominal::WX);
 
-  y.segment<3>(StateError::ROLL) = 2.0 * (Eigen::Quaterniond(h(StateNominal::QW), h(StateNominal::QX), h(StateNominal::QY), h(StateNominal::QZ)).inverse() *
-                                          Eigen::Quaterniond(z(StateNominal::QW), z(StateNominal::QX), z(StateNominal::QY), z(StateNominal::QZ)))
-                                             .vec();
+  // Calcular o quaternion erro
+  Eigen::Quaterniond q_hat(h(StateNominal::QW), h(StateNominal::QX), h(StateNominal::QY), h(StateNominal::QZ));
+
+  Eigen::Quaterniond dq = q_hat.inverse() * q_meas;
+
+  // CRÍTICO: Verificar sinal da componente escalar para evitar ambiguidade
+  // Quaternions q e -q representam a mesma rotação, mas escolhemos w >= 0
+  if (dq.w() < 0.0) {
+    dq.w() = -dq.w();
+    dq.x() = -dq.x();
+    dq.y() = -dq.y();
+    dq.z() = -dq.z();
+  }
+
+  // Extrair o vetor de erro (aproximação de pequeno ângulo)
+  // dθ ≈ 2 * [x, y, z]^T da parte vetorial do quaternion
+  y.segment<3>(StateError::ROLL) = 2.0 * dq.vec();
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Identity(12, 12);
 
   Eigen::MatrixXd R                                 = Eigen::MatrixXd::Identity(12, 12);
-  R.block<3, 3>(StateError::PX, StateError::PX)     = Eigen::Matrix3d::Identity() * _gains_.odometry.position;
+  R.block<2, 2>(StateError::PX, StateError::PX)     = Eigen::Matrix2d::Identity() * _gains_.odometry.position_xy;
+  R(StateError::PZ, StateError::PZ)                 = 1.0 * _gains_.odometry.position_z;
   R.block<3, 3>(StateError::ROLL, StateError::ROLL) = Eigen::Matrix3d::Identity() * _gains_.odometry.orientation;
-  R.block<3, 3>(StateError::VX, StateError::VX)     = Eigen::Matrix3d::Identity() * _gains_.odometry.velocity_linear;
+  R.block<2, 2>(StateError::VX, StateError::VX)     = Eigen::Matrix2d::Identity() * _gains_.odometry.velocity_linear_xy;
+  R(StateError::VZ, StateError::VZ)                 = 1.0 * _gains_.odometry.velocity_linear_z;
   R.block<3, 3>(StateError::WX, StateError::WX)     = Eigen::Matrix3d::Identity() * _gains_.odometry.velocity_angular;
 
   Eigen::MatrixXd S = H * P_ * H.transpose() + R;
@@ -303,7 +329,7 @@ Eigen::Matrix3d MEKFEstimator::skew_symmetric(const Eigen::Vector3d &v) {
 
 Eigen::Quaterniond MEKFEstimator::ExpSO3Quaternion(const Eigen::Vector3d &theta_vec) {
   Eigen::Quaterniond delta_q;
-  if (theta_vec.norm() < 1e-8) {
+  if (theta_vec.norm() < 1e-12) {
     delta_q = Eigen::Quaterniond(1.0, 0.5 * theta_vec.x(), 0.5 * theta_vec.y(), 0.5 * theta_vec.z());
   } else {
     delta_q.w()   = (cos(0.5 * theta_vec.norm()));

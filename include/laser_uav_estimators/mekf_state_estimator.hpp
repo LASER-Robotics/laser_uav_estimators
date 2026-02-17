@@ -59,10 +59,12 @@ enum
 
 struct NoiseGains
 {
-  double position         = 1.0;
-  double orientation      = 1.0;
-  double velocity_linear  = 1.0;
-  double velocity_angular = 1.0;
+  double position_xy        = 1.0;
+  double position_z         = 1.0;
+  double orientation        = 1.0;
+  double velocity_linear_xy = 1.0;
+  double velocity_linear_z  = 1.0;
+  double velocity_angular   = 1.0;
 };
 
 struct MeasurementNoiseGains
