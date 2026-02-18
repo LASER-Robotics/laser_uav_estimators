@@ -1,0 +1,30 @@
+/**/**:
+  ros__parameters:
+
+
+    ekf_verbosity: "DEBUG" # Options: SILENT, ERROR, WARNING, INFO, DEBUG, VERBOSE
+
+    process_noise_gains:
+      velocity: 0.186
+      orientation: 0.018665
+      accelerometer: 0.6
+      gyroscope: 0.0038785
+
+    measurement_noise_gains:
+      px4_odometry:
+        position: 0.05
+        orientation: 0.05
+        linear_velocity: 0.1
+        angular_velocity: 0.01
+
+        
+    limits:
+      px4_api:
+        position:
+          x: 0.5 # [m]
+          y: 0.5 # [m]
+          z: 1.0 # [m]
+        orientation: 
+          roll: 2.25   # [rad]
+          pitch: 2.25  # [rad]
+          yaw: 2.25    # [rad]
