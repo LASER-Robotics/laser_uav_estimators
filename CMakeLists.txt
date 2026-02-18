@@ -28,7 +28,6 @@ find_package(tf2_ros REQUIRED)
 find_package(laser_uav_lib REQUIRED)
 find_package(autodiff REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Sophus REQUIRED)
 
 set(dependencies
   rclcpp
@@ -45,7 +44,6 @@ set(dependencies
 # Library
 # =====================================================
 add_library(laser_uav_estimators SHARED
-  src/state_estimator.cpp
   src/eskf_state_estimator.cpp
   src/mekf_state_estimator.cpp
 )
@@ -57,7 +55,6 @@ target_include_directories(laser_uav_estimators PUBLIC
 
 target_link_libraries(laser_uav_estimators
   Eigen3::Eigen
-  Sophus::Sophus
   ${autodiff_LIBRARIES}
 )
 
@@ -101,15 +98,6 @@ if(BUILD_TESTING)
 
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_gtest(test_state_estimator test/test_state_estimator.cpp)
-
-  target_link_libraries(test_state_estimator
-    laser_uav_estimators
-    Eigen3::Eigen
-    ${autodiff_LIBRARIES}
-  )
-
-  ament_target_dependencies(test_state_estimator ${dependencies})
 endif()
 
 ament_package()

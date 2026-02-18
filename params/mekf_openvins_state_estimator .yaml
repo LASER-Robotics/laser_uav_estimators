@@ -10,7 +10,7 @@
       angular_velocity: 0.001    # 0.001
 
     measurement_noise_gains:
-      fast_lio:  
+      openvins:  
         position_xy: 0.1 # 0.1
         position_z: 0.25   # 0.25
         orientation: 0.1   # 0.1

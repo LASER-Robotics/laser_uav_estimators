@@ -15,10 +15,11 @@ MEKFEstimator::MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocati
       _inertia_(inertia),
       logger_(rclcpp::get_logger("mekf_state_estimator")) {
   set_verbosity(verbosity);
-  std::cout << "Verbosity: " << verbosity << std::endl;
+
   if (verbosity == "DEBUG") {
     is_debug_ = true;
   }
+
   RCLCPP_INFO(logger_, "--- MEKF STATE ESTIMATOR CONSTRUCTOR ---");
 
   x_nominal_                   = Eigen::VectorXd::Zero(13);  // Posição (3), Velocidade Linear (3), Orientação (4), Velocidade Angular (3)
@@ -256,30 +257,13 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
   orientation_predict.y() = x_nominal_predict(StateNominal::QY);
   orientation_predict.z() = x_nominal_predict(StateNominal::QZ);
 
-  std::cout << "Nominal Predict: " << x_nominal_predict.transpose() << std::endl;
-  std::cout << "Orientation predict (before correction): " << orientation_predict.w() << " " << orientation_predict.x() << " " << orientation_predict.y() << " "
-            << orientation_predict.z() << std::endl;
-
-  std::cout << "Delta_x (orientation): " << delta_x_.segment<3>(StateError::ROLL).transpose() << std::endl;
-  std::cout << "Orientation predict (before correction): " << orientation_predict.w() << " " << orientation_predict.x() << " " << orientation_predict.y() << " "
-            << orientation_predict.z() << std::endl;
-
-
   Eigen::Quaterniond orientation_error =
       Eigen::Quaterniond(1, 0.5 * delta_x_(StateError::ROLL), 0.5 * delta_x_(StateError::PITCH), 0.5 * delta_x_(StateError::YAW));
 
-  std::cout << "Orientation error (from delta_x): " << orientation_error.w() << " " << orientation_error.x() << " " << orientation_error.y() << " "
-            << orientation_error.z() << std::endl;
-
 
   Eigen::Quaterniond orientation_corrected = (orientation_predict * orientation_error);
-  std::cout << "Orientation corrected (after correction): " << orientation_corrected.w() << " " << orientation_corrected.x() << " " << orientation_corrected.y()
-            << " " << orientation_corrected.z() << std::endl;
 
   orientation_corrected.normalize();
-
-  std::cout << "Orientation corrected (after correction): " << orientation_corrected.w() << " " << orientation_corrected.x() << " " << orientation_corrected.y()
-            << " " << orientation_corrected.z() << std::endl;
 
 
   x_nominal_(StateNominal::QW) = orientation_corrected.w();
@@ -376,6 +360,11 @@ Eigen::MatrixXd MEKFEstimator::get_covariance() const {
   return P_;
 }
 
+/* set_measurement_noise_gains() //{ */
+void MEKFEstimator::set_measurement_noise_gains(const MeasurementNoiseGains &gains) {
+  _gains_ = gains;
+}
+//}
 
 /* set_verbosity() //{ */
 void MEKFEstimator::set_verbosity(const std::string &verbosity) {

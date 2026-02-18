@@ -7,7 +7,6 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sophus/so3.hpp>
 #include <string>
 #include <vector>
 // #include <logging.hpp>
@@ -111,10 +110,10 @@ struct InnovationLimits
   Eigen::Vector3d rot;  // [rad] limites por eixo (roll,pitch,yaw)
 };
 
-class ErrorStateEstimator {
+class ESKFEstimator {
 public:
-  ErrorStateEstimator(const int num_sensors_with_drift, const NoiseGains &noise_gains, const ProcessNoiseGains &gains,
-                      const std::map<int, InnovationLimits> &limits, const std::string &verbosity = "INFO");
+  ESKFEstimator(const int num_sensors_with_drift, const NoiseGains &noise_gains, const ProcessNoiseGains &gains, const std::map<int, InnovationLimits> &limits,
+                const std::string &verbosity = "INFO");
 
   // Passo de Predição: Equações (1)-(8) e (11)
   void predict(const sensor_msgs::msg::Imu &imu_measure, double dt);
@@ -142,8 +141,9 @@ private:
   void apply_odometry_correction(const nav_msgs::msg::Odometry &odom, const ProcessNoiseGains &gains, int sensor_idx);
 
   // Árbitro para eliminar outliers (Seção III)
-  bool outlier_arbiter(const nav_msgs::msg::Odometry &measure, const int &sensor_type);
-  void set_verbosity(const std::string &verbosity);
+  bool               outlier_arbiter(const nav_msgs::msg::Odometry &measure, const int &sensor_type);
+  void               set_verbosity(const std::string &verbosity);
+  Eigen::Quaterniond ExpSO3Quaternion(const Eigen::Vector3d &theta_vec);
 
   // Getters de drift por sensor
   Eigen::Vector3d    get_sensor_p_drift(int sensor_idx) const;

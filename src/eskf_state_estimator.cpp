@@ -5,10 +5,10 @@
 namespace laser_uav_estimators
 {
 
-/* ErrorStateEstimator() //{ */
+/* ESKFEstimator() //{ */
 
-ErrorStateEstimator::ErrorStateEstimator(const int num_sensors_with_drift, const NoiseGains &noise_gains, const ProcessNoiseGains &gains,
-                                         const std::map<int, InnovationLimits> &limits, const std::string &verbosity)
+ESKFEstimator::ESKFEstimator(const int num_sensors_with_drift, const NoiseGains &noise_gains, const ProcessNoiseGains &gains,
+                             const std::map<int, InnovationLimits> &limits, const std::string &verbosity)
     : NUM_SENSORS_WITH_DRIFT(num_sensors_with_drift),
       NUM_STATES_NOMINAL(StateNominal::TOTAL_SIZE + (num_sensors_with_drift * DRIFT_SIZE)),
       NUM_STATES_ERROR(StateError::TOTAL_SIZE + (num_sensors_with_drift * DRIFT_ERROR_SIZE)),
@@ -61,7 +61,7 @@ ErrorStateEstimator::ErrorStateEstimator(const int num_sensors_with_drift, const
   }
 }
 
-void ErrorStateEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, double dt) {
+void ESKFEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, double dt) {
   RCLCPP_DEBUG_STREAM(logger_, "[predict] dt: " << dt);
   RCLCPP_DEBUG_STREAM(logger_, "[predict] IMU acc: [" << imu_measure.linear_acceleration.x << ", " << imu_measure.linear_acceleration.y << ", "
                                                       << imu_measure.linear_acceleration.z << "] gyro: [" << imu_measure.angular_velocity.x << ", "
@@ -135,12 +135,19 @@ void ErrorStateEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, doub
 
   Eigen::MatrixXd Fx = Eigen::MatrixXd::Identity(NUM_STATES_ERROR, NUM_STATES_ERROR);
 
-  Fx.block<3, 3>(0, 3)  = Eigen::Matrix3d::Identity() * dt;                     // d_p / d_v
-  Fx.block<3, 3>(3, 6)  = -R * skew_symmetric(a_m - a_b) * dt;                  // d_v / d_theta
-  Fx.block<3, 3>(3, 9)  = -R * dt;                                              // d_v / d_ba
-  Fx.block<3, 3>(3, 15) = Eigen::Matrix3d::Identity() * dt;                     // d_v / d_g
-  Fx.block<3, 3>(6, 6)  = Sophus::SO3d::exp(delta_theta).matrix().transpose();  // d_theta / d_theta
-  Fx.block<3, 3>(6, 12) = -Eigen::Matrix3d::Identity() * dt;                    // d_theta / d_bw
+  Fx.block<3, 3>(0, 3)  = Eigen::Matrix3d::Identity() * dt;     // d_p / d_v
+  Fx.block<3, 3>(3, 6)  = -R * skew_symmetric(a_m - a_b) * dt;  // d_v / d_theta
+  Fx.block<3, 3>(3, 9)  = -R * dt;                              // d_v / d_ba
+  Fx.block<3, 3>(3, 15) = Eigen::Matrix3d::Identity() * dt;     // d_v / d_g
+
+  // 1. Calcula o quaternion a partir do vetor de erro (usando sua função)
+  Eigen::Quaterniond delta_q = ExpSO3Quaternion(delta_theta);
+
+  // 2. Converte para Matriz de Rotação (3x3) e aplica a transposta
+  // Equivalente a: Sophus::SO3d::exp(delta_theta).matrix().transpose()
+  Fx.block<3, 3>(6, 6) = delta_q.toRotationMatrix().transpose();
+
+  Fx.block<3, 3>(6, 12) = -Eigen::Matrix3d::Identity() * dt;  // d_theta / d_bw
 
   // Matriz de Ruído Qw (Baseada na Eq. 14)
   // Aqui você usa os ganhos r_gains_ e q_gains_ definidos no seu .hpp
@@ -164,7 +171,7 @@ void ErrorStateEstimator::predict(const sensor_msgs::msg::Imu &imu_measure, doub
   RCLCPP_DEBUG_STREAM(logger_, "[predict] P_ (trace): " << P_.trace());
 }
 
-void ErrorStateEstimator::correct(const MeasurementPackage &measurements) {
+void ESKFEstimator::correct(const MeasurementPackage &measurements) {
   // 1. Árbitro de Outliers (Seção III)
   RCLCPP_DEBUG_STREAM(logger_, "[correct] x_nominal_ (antes):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << x_nominal_.segment<3>(StateNominal::PX).transpose());
@@ -256,7 +263,7 @@ void ErrorStateEstimator::correct(const MeasurementPackage &measurements) {
 }
 
 
-void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometry &odom, const ProcessNoiseGains &gains, int sensor_idx) {
+void ESKFEstimator::apply_odometry_correction(const nav_msgs::msg::Odometry &odom, const ProcessNoiseGains &gains, int sensor_idx) {
 
 
   const int sensor_base = StateError::TOTAL_SIZE + 6 * sensor_idx;
@@ -402,12 +409,12 @@ void ErrorStateEstimator::apply_odometry_correction(const nav_msgs::msg::Odometr
 
 
 // Getters conforme equações (22)-(28) do artigo
-Eigen::Vector3d ErrorStateEstimator::get_position() const {
+Eigen::Vector3d ESKFEstimator::get_position() const {
   // Retorna p_t = p + delta_p (após o reset, p contém a estimativa corrigida)
   return x_nominal_.segment<3>(StateNominal::PX);
 }
 
-Eigen::Quaterniond ErrorStateEstimator::get_orientation() const {
+Eigen::Quaterniond ESKFEstimator::get_orientation() const {
   // Retorna q_t = q * dq (após o reset, q contém a orientação corrigida)
   Eigen::Quaterniond q =
       Eigen::Quaterniond(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
@@ -415,19 +422,31 @@ Eigen::Quaterniond ErrorStateEstimator::get_orientation() const {
   return q;
 }
 
-Eigen::Vector3d ErrorStateEstimator::get_linear_velocity() const {
+Eigen::Vector3d ESKFEstimator::get_linear_velocity() const {
   // Retorna v_t = v + delta_v
   return x_nominal_.segment<3>(StateNominal::VX);
 }
 
-Eigen::Vector3d ErrorStateEstimator::get_angular_velocity() const {
+Eigen::Vector3d ESKFEstimator::get_angular_velocity() const {
   // A velocidade angular verdadeira é a medição menos o bias estimado: w_t = w_mv - w_b
   Eigen::Vector3d w_mv(last_imu_measure_.angular_velocity.x, last_imu_measure_.angular_velocity.y, last_imu_measure_.angular_velocity.z);
   Eigen::Vector3d w_b = x_nominal_.segment<3>(StateNominal::BGX);
   return w_mv - w_b;
 }
 
-nav_msgs::msg::Odometry ErrorStateEstimator::get_odometry() const {
+
+Eigen::Quaterniond ESKFEstimator::ExpSO3Quaternion(const Eigen::Vector3d &theta_vec) {
+  Eigen::Quaterniond delta_q;
+  if (theta_vec.norm() < 1e-12) {
+    delta_q = Eigen::Quaterniond(1.0, 0.5 * theta_vec.x(), 0.5 * theta_vec.y(), 0.5 * theta_vec.z());
+  } else {
+    delta_q.w()   = (cos(0.5 * theta_vec.norm()));
+    delta_q.vec() = theta_vec / theta_vec.norm() * sin(0.5 * theta_vec.norm());
+  }
+  return delta_q.normalized();
+}
+
+nav_msgs::msg::Odometry ESKFEstimator::get_odometry() const {
   nav_msgs::msg::Odometry odom;
 
   // Pose: Posição (Eq. 22) e Orientação (Eq. 24)
@@ -470,7 +489,7 @@ nav_msgs::msg::Odometry ErrorStateEstimator::get_odometry() const {
  * @brief Injeta o erro estimado no estado nominal e reseta delta_x.
  * Segue as equações (22)-(28).
  */
-void ErrorStateEstimator::inject_error_and_reset() {
+void ESKFEstimator::inject_error_and_reset() {
   RCLCPP_DEBUG_STREAM(logger_, "[inject_error_and_reset] x_nominal_ (antes):");
   RCLCPP_DEBUG_STREAM(logger_, " ├ Pos:      " << x_nominal_.segment<3>(StateNominal::PX).transpose());
   RCLCPP_DEBUG_STREAM(logger_, " ├ Quat:     " << x_nominal_.segment<4>(StateNominal::QW).transpose());
@@ -611,20 +630,20 @@ void ErrorStateEstimator::inject_error_and_reset() {
   RCLCPP_DEBUG_STREAM(logger_, " └ [PX4] Drift Angle: " << delta_x_.segment<3>(StateError::TOTAL_SIZE + 15).transpose());
 }
 
-Eigen::Vector3d ErrorStateEstimator::get_sensor_p_drift(int sensor_idx) const {
+Eigen::Vector3d ESKFEstimator::get_sensor_p_drift(int sensor_idx) const {
   // Retorna o drift de posição p_i do sensor específico
   // O índice depende de como você organizou seu x_nominal estendido
   int offset = StateNominal::TOTAL_SIZE + (sensor_idx * DRIFT_SIZE);
   return x_nominal_.segment<3>(offset);
 }
 
-Eigen::Quaterniond ErrorStateEstimator::get_sensor_q_drift(int sensor_idx) const {
+Eigen::Quaterniond ESKFEstimator::get_sensor_q_drift(int sensor_idx) const {
   // Retorna o drift de orientação q_i do sensor específico
   int offset = StateNominal::TOTAL_SIZE + (sensor_idx * DRIFT_SIZE) + 3;
   return Eigen::Quaterniond(x_nominal_(offset), x_nominal_(offset + 1), x_nominal_(offset + 2), x_nominal_(offset + 3));
 }
 
-bool ErrorStateEstimator::outlier_arbiter(const nav_msgs::msg::Odometry &measure, const int &sensor_type) {
+bool ESKFEstimator::outlier_arbiter(const nav_msgs::msg::Odometry &measure, const int &sensor_type) {
   // --------------------------------------------------
   // 1. Verifica se há limites configurados
   // --------------------------------------------------
@@ -705,14 +724,14 @@ bool ErrorStateEstimator::outlier_arbiter(const nav_msgs::msg::Odometry &measure
   return true;
 }
 
-Eigen::Matrix3d ErrorStateEstimator::skew_symmetric(const Eigen::Vector3d &v) {
+Eigen::Matrix3d ESKFEstimator::skew_symmetric(const Eigen::Vector3d &v) {
   Eigen::Matrix3d m;
   m << 0, -v(2), v(1), v(2), 0, -v(0), -v(1), v(0), 0;
   return m;
 }
 
 /* set_verbosity() //{ */
-void ErrorStateEstimator::set_verbosity(const std::string &verbosity) {
+void ESKFEstimator::set_verbosity(const std::string &verbosity) {
   if (verbosity == "SILENT") {
     logger_.set_level(rclcpp::Logger::Level::Fatal);
   } else if (verbosity == "ERROR") {

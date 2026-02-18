@@ -7,7 +7,6 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sophus/so3.hpp>
 #include <string>
 #include <vector>
 // #include <logging.hpp>
@@ -89,6 +88,7 @@ public:
   Eigen::Vector3d         get_angular_velocity() const;
   nav_msgs::msg::Odometry get_odometry() const;
   Eigen::MatrixXd         get_covariance() const;
+  void                    set_measurement_noise_gains(const MeasurementNoiseGains &gains);
 
 private:
   // Estruturas de Estado
