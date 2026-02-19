@@ -2,18 +2,18 @@
   ros__parameters:
 
     process_noise_gains:
-      position_xy: 0.0001       # 0.0001
-      position_z: 0.000001        # 0.000001;
-      orientation: 0.001        # 0.001
-      linear_velocity_xy: 0.0001 # 0.0001
-      linear_velocity_z: 0.025 # 0.025
-      angular_velocity: 0.001    # 0.001
+      position_xy: 0.1       # 0.0001
+      position_z: 0.1        # 0.000001;
+      orientation: 0.1        # 0.001
+      linear_velocity_xy: 0.1 # 0.0001
+      linear_velocity_z: 0.1 # 0.025
+      angular_velocity: 0.1    # 0.001
 
     measurement_noise_gains:
       openvins:  
-        position_xy: 0.1 # 0.1
-        position_z: 0.25   # 0.25
-        orientation: 0.1   # 0.1
-        linear_velocity_xy: 0.1 # 0.1
-        linear_velocity_z: 0.025 # 0.025
-        angular_velocity: 0.1 # 0.1
+        position_xy: 0.0001 # 0.1
+        position_z: 0.001   # 0.25
+        orientation: 0.0001   # 0.1
+        linear_velocity_xy: 0.001 # 0.1
+        linear_velocity_z: 0.0001 # 0.025
+        angular_velocity: 0.001 # 0.1
