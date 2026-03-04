@@ -17,3 +17,5 @@
         linear_velocity_xy: 0.01 # 0.1
         linear_velocity_z: 0.025 # 0.025
         angular_velocity: 0.01 # 0.1
+      garmin:
+        position_z: 0.1 # 0.5        
