@@ -1,16 +1,13 @@
-#ifndef LASER_UAV_ESTIMATORS_ESKF_STATE_ESTIMATOR_HPP
-#define LASER_UAV_ESTIMATORS_ESKF_STATE_ESTIMATOR_HPP
+#ifndef LASER_UAV_ESTIMATORS_MULTI_MEKF_STATE_ESTIMATOR_HPP
+#define LASER_UAV_ESTIMATORS_MULTI_MEKF_STATE_ESTIMATOR_HPP
 
 #include <Eigen/Dense>
 #include <optional>
 #include <nav_msgs/msg/odometry.hpp>
-#include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/range.hpp>
-#include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
-// #include <logging.hpp>
 
 namespace laser_uav_estimators
 {
@@ -23,13 +20,13 @@ enum
   PX         = 0,   // Position x
   PY         = 1,   // Position y
   PZ         = 2,   // Position z
-  VX         = 3,   // Velocity x
-  VY         = 4,   // Velocity y
-  VZ         = 5,   // Velocity z
-  QW         = 6,   // Orientation w
-  QX         = 7,   // Orientation x
-  QY         = 8,   // Orientation y
-  QZ         = 9,   // Orientation z
+  QW         = 3,   // Orientation w
+  QX         = 4,   // Orientation x
+  QY         = 5,   // Orientation y
+  QZ         = 6,   // Orientation z
+  VX         = 7,   // Velocity x
+  VY         = 8,   // Velocity y
+  VZ         = 9,   // Velocity z
   WX         = 10,  // Angular velocity x
   WY         = 11,  // Angular velocity y
   WZ         = 12,  // Angular velocity z
@@ -44,12 +41,12 @@ enum
   PX         = 0,   // Error Position x
   PY         = 1,   // Error Position y
   PZ         = 2,   // Error Position z
-  VX         = 3,   // Error Velocity x
-  VY         = 4,   // Error Velocity y
-  VZ         = 5,   // Error Velocity z
-  ROLL       = 6,   // Error Roll
-  PITCH      = 7,   // Error Pitch
-  YAW        = 8,   // Error Yaw
+  ROLL       = 3,   // Error Roll
+  PITCH      = 4,   // Error Pitch
+  YAW        = 5,   // Error Yaw
+  VX         = 6,   // Error Velocity x
+  VY         = 7,   // Error Velocity y
+  VZ         = 8,   // Error Velocity z
   WX         = 9,   // Error Angular velocity x
   WY         = 10,  // Error Angular velocity y
   WZ         = 11,  // Error Angular velocity z
@@ -57,38 +54,64 @@ enum
 };
 }
 
+struct MeasurementPackage
+{
+  std::optional<nav_msgs::msg::Odometry> px4;
+  std::optional<nav_msgs::msg::Odometry> fast_lio;
+  std::optional<nav_msgs::msg::Odometry> openvins;
+  std::optional<sensor_msgs::msg::Range> garmin;
+};
+
+struct Position
+{
+  double x = 1.0;
+  double y = 1.0;
+  double z = 1.0;
+};
+
+struct Orientation
+{
+  double roll  = 1.0;
+  double pitch = 1.0;
+  double yaw   = 1.0;
+};
+
+struct LinearVelocity
+{
+  double vx = 1.0;
+  double vy = 1.0;
+  double vz = 1.0;
+};
+
+struct AngularVelocity
+{
+  double wx = 1.0;
+  double wy = 1.0;
+  double wz = 1.0;
+};
+
 struct NoiseGains
 {
-  double position_xy        = 1.0;
-  double position_z         = 1.0;
-  double orientation        = 1.0;
-  double velocity_linear_xy = 1.0;
-  double velocity_linear_z  = 1.0;
-  double velocity_angular   = 1.0;
+  Position        position;
+  Orientation     orientation;
+  LinearVelocity  linear_velocity;
+  AngularVelocity angular_velocity;
 };
 
 struct MeasurementNoiseGains
 {
-  NoiseGains garmin;
   NoiseGains odometry;
 };
 
-struct MeasurementPackage
-{
-  const nav_msgs::msg::Odometry *odometry = nullptr;
-  const sensor_msgs::msg::Range *garmin   = nullptr;
-};
-
-
-constexpr float GRAVITY = 9.80665f;
+constexpr float GRAVITY = -9.80665f;
 
 class MEKFEstimator {
 public:
-  MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const MeasurementNoiseGains &gains,
-                const NoiseGains &default_gains, const std::string &verbosity);
+  MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const MeasurementNoiseGains &noise_px4,
+                const MeasurementNoiseGains &noise_fast_lio, const MeasurementNoiseGains &noise_openvins, const MeasurementNoiseGains &noise_garmin,
+                const NoiseGains &process_noise, const std::string &verbosity);
   void predict(const Eigen::VectorXd &u, double dt);
 
-  void correct(const nav_msgs::msg::Odometry measurements);
   void correct(const MeasurementPackage &measurements);
 
   Eigen::Vector3d         get_position() const;
@@ -97,7 +120,6 @@ public:
   Eigen::Vector3d         get_angular_velocity() const;
   nav_msgs::msg::Odometry get_odometry() const;
   Eigen::MatrixXd         get_covariance() const;
-  void                    set_measurement_noise_gains(const MeasurementNoiseGains &gains);
 
 private:
   // Estruturas de Estado
@@ -115,13 +137,15 @@ private:
   Eigen::Matrix3d    skew_symmetric(const Eigen::Vector3d &v);
   Eigen::Quaterniond ExpSO3Quaternion(const Eigen::Vector3d &theta_vec);
 
-  MeasurementNoiseGains _gains_;
-  NoiseGains            _default_gains_;
+  MeasurementNoiseGains _measurement_noise_px4_;
+  MeasurementNoiseGains _measurement_noise_fast_lio_;
+  MeasurementNoiseGains _measurement_noise_openvins_;
+  MeasurementNoiseGains _measurement_noise_garmin_;
+  NoiseGains            _process_noise_;
 
   float           _mass_;
   Eigen::MatrixXd _allocation_matrix_;
   Eigen::Matrix3d _inertia_;
-
 
   rclcpp::Logger logger_;
 };
