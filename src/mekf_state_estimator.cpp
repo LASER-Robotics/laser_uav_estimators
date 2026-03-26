@@ -382,4 +382,10 @@ void MEKFEstimator::set_verbosity(const std::string &verbosity) {
 }
 //}
 
+/* set_verbosity() //{ */
+void MEKFEstimator::set_mass(double mass) {
+  _mass_ = mass;
+}
+//}
+
 }  // namespace laser_uav_estimators

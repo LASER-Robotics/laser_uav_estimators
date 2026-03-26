@@ -89,6 +89,8 @@ public:
   nav_msgs::msg::Odometry get_odometry() const;
   Eigen::MatrixXd         get_covariance() const;
   void                    set_measurement_noise_gains(const MeasurementNoiseGains &gains);
+  void                    set_mass(double mass);
+
 
 private:
   // Estruturas de Estado
