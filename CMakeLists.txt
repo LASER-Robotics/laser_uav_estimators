@@ -26,7 +26,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 find_package(laser_uav_lib REQUIRED)
-find_package(autodiff REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 set(dependencies
@@ -55,7 +54,6 @@ target_include_directories(laser_uav_estimators PUBLIC
 
 target_link_libraries(laser_uav_estimators
   Eigen3::Eigen
-  ${autodiff_LIBRARIES}
 )
 
 ament_target_dependencies(laser_uav_estimators ${dependencies})

@@ -27,9 +27,6 @@
   <build_export_depend>eigen3_cmake_module</build_export_depend>
   <exec_depend>libeigen3-dev</exec_depend>
 
-  <build_depend>libautodiff-dev</build_depend>
-  <exec_depend>libautodiff-dev</exec_depend>
-
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
