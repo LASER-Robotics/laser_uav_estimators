@@ -4,7 +4,6 @@
 
 namespace laser_uav_estimators
 {
-
 /* MEKFEstimator() //{ */
 MEKFEstimator::MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocation_matrix, const Eigen::Matrix3d &inertia, const MeasurementNoiseGains &gains,
                              const NoiseGains &default_gains, const std::string &verbosity)
@@ -22,20 +21,22 @@ MEKFEstimator::MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocati
 
   RCLCPP_INFO(logger_, "--- MEKF STATE ESTIMATOR CONSTRUCTOR ---");
 
-  x_nominal_                   = Eigen::VectorXd::Zero(13);  // Posição (3), Velocidade Linear (3), Orientação (4), Velocidade Angular (3)
-  x_nominal_(StateNominal::QW) = 1.0;                        // Inicializa a orientação como identidade
+  x_nominal_                   = Eigen::VectorXd::Zero(13);  // position (3), linear velocity (3), orientation (4), angular velocity (3)
+  x_nominal_(StateNominal::QW) = 1.0;                        // init orientation with a unit quaternion
 
 
-  delta_x_ = Eigen::VectorXd::Zero(12);                // Erros em Posição (3), Velocidade Linear (3), Orientação (3), Velocidade Angular (3)
-  P_       = Eigen::MatrixXd::Identity(12, 12) * 0.1;  // Covariância inicial pequena
+  delta_x_ = Eigen::VectorXd::Zero(12);                // rrrors in position (3), linear velocity (3), orientation (3), angular velocity (3)
+  P_       = Eigen::MatrixXd::Identity(12, 12) * 0.1;  // init with a small covariance
 }
+//}
 
+/* predict() //{ */
 void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
   if (is_debug_) {
-    // Converter a orientação corrigida para Euler para facilitar a leitura
+    // convert corrected orientation to Euler 
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
-    // Ordem Z-Y-X -> Yaw, Pitch, Roll
+    // Z-Y-X -> Yaw, Pitch, Roll
     Eigen::Vector3d euler   = q_final.toRotationMatrix().eulerAngles(2, 1, 0);
     double          rad2deg = 180.0 / M_PI;
 
@@ -74,14 +75,13 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
   Eigen::Vector3d linear_velocity_predict =
       linear_velocity + dt * (((thrust / _mass_) * bz) + (R_body_to_inertial.transpose() * (-GRAVITY) * ez) - angular_velocity.cross(linear_velocity));
 
-  // Propagação correta da orientação usando ExpSO3Quaternion
+  // orientation propagation with exp_SO3_quaternion
   Eigen::Vector3d    half_theta_vec      = dt * angular_velocity;
-  Eigen::Quaterniond delta_q             = ExpSO3Quaternion(half_theta_vec);
+  Eigen::Quaterniond delta_q             = exp_SO3_quaternion(half_theta_vec);
   Eigen::Quaterniond orientation_predict = orientation * delta_q;
   orientation_predict.normalize();
 
   Eigen::Vector3d angular_velocity_predict = angular_velocity + (dt * (_inertia_.inverse() * (tau - angular_velocity.cross(_inertia_ * angular_velocity))));
-
 
   x_nominal_predict                   = Eigen::VectorXd::Zero(13);
   x_nominal_predict(StateNominal::QW) = 1.0;
@@ -122,11 +122,11 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
 
 
   if (is_debug_) {
-    // Converter a orientação corrigida para Euler para facilitar a leitura
+    // convert corrected orientation to Euler 
     Eigen::Quaterniond q_final(x_nominal_predict(StateNominal::QW), x_nominal_predict(StateNominal::QX), x_nominal_predict(StateNominal::QY),
                                x_nominal_predict(StateNominal::QZ));
 
-    // Ordem Z-Y-X -> Yaw, Pitch, Roll
+    // Z-Y-X -> Yaw, Pitch, Roll
     Eigen::Vector3d euler   = q_final.toRotationMatrix().eulerAngles(2, 1, 0);
     double          rad2deg = 180.0 / M_PI;
 
@@ -142,7 +142,9 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
 
   P_ = Fx * P_ * Fx.transpose() + Q;
 }
+//}
 
+/* correct() //{ */
 void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
   Eigen::Vector3d    p_meas = Eigen::Vector3d(measurements.pose.pose.position.x, measurements.pose.pose.position.y, measurements.pose.pose.position.z);
@@ -152,10 +154,10 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
   Eigen::Vector3d    w_meas = Eigen::Vector3d(measurements.twist.twist.angular.x, measurements.twist.twist.angular.y, measurements.twist.twist.angular.z);
 
   if (is_debug_) {
-    // Converter a orientação corrigida para Euler para facilitar a leitura
+    // convert corrected orientation to Euler 
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
-    // Ordem Z-Y-X -> Yaw, Pitch, Roll
+    // Z-Y-X -> Yaw, Pitch, Roll
     Eigen::Vector3d euler      = q_final.toRotationMatrix().eulerAngles(0, 1, 2);
     Eigen::Vector3d euler_mean = q_meas.toRotationMatrix().eulerAngles(0, 1, 2);
 
@@ -204,8 +206,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
   Eigen::Quaterniond dq = q_hat.inverse() * q_meas;
 
-  // CRÍTICO: Verificar sinal da componente escalar para evitar ambiguidade
-  // Quaternions q e -q representam a mesma rotação, mas escolhemos w >= 0
+  // check the signal of the scalar component to avoid singularity 
   if (dq.w() < 0.0) {
     dq.w() = -dq.w();
     dq.x() = -dq.x();
@@ -213,8 +214,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
     dq.z() = -dq.z();
   }
 
-  // Extrair o vetor de erro (aproximação de pequeno ângulo)
-  // dθ ≈ 2 * [x, y, z]^T da parte vetorial do quaternion
+  // extract the error vector (small angle aproximation) 
   y.segment<3>(StateError::ROLL) = 2.0 * dq.vec();
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Identity(12, 12);
@@ -249,7 +249,6 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
   x_nominal_.segment<3>(StateNominal::VX) = x_nominal_predict.segment<3>(StateNominal::VX) + delta_x_.segment<3>(StateError::VX);
   x_nominal_.segment<3>(StateNominal::WX) = x_nominal_predict.segment<3>(StateNominal::WX) + delta_x_.segment<3>(StateError::WX);
 
-
   Eigen::Quaterniond orientation_predict;
 
   orientation_predict.w() = x_nominal_predict(StateNominal::QW);
@@ -265,7 +264,6 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
   orientation_corrected.normalize();
 
-
   x_nominal_(StateNominal::QW) = orientation_corrected.w();
   x_nominal_(StateNominal::QX) = orientation_corrected.x();
   x_nominal_(StateNominal::QY) = orientation_corrected.y();
@@ -273,10 +271,10 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
 
   if (is_debug_) {
-    // Converter a orientação corrigida para Euler para facilitar a leitura
+    // convert corrected orientation to Euler 
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
-    // Ordem Z-Y-X -> Yaw, Pitch, Roll
+    // Z-Y-X -> Yaw, Pitch, Roll
     Eigen::Vector3d euler   = q_final.toRotationMatrix().eulerAngles(2, 1, 0);
     double          rad2deg = 180.0 / M_PI;
 
@@ -289,29 +287,32 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
     RCLCPP_DEBUG_STREAM(logger_, "     ├ Ang. Vel.:    " << x_nominal_.segment<3>(StateNominal::WX).transpose());
     RCLCPP_DEBUG_STREAM(logger_, "     └ Trace(P):     " << P_.trace());
 
-    // Opcional: Printar a magnitude do erro aplicado
     RCLCPP_DEBUG_STREAM(logger_, "     └ Delta_x norm: " << delta_x_.norm());
   }
 
   inject_error_and_reset();
 }
+//}
 
-
+/* inject_error_and_reset() //{ */
 void MEKFEstimator::inject_error_and_reset() {
   Eigen::MatrixXd G                                 = Eigen::MatrixXd::Identity(12, 12);
   G.block<3, 3>(StateError::ROLL, StateError::ROLL) = Eigen::Matrix3d::Identity() - 0.5 * skew_symmetric(delta_x_.segment<3>(StateError::ROLL));
   P_                                                = G * P_ * G.transpose();
   delta_x_.setZero();
 }
+//}
 
-
+/* skew_symmetric() //{ */
 Eigen::Matrix3d MEKFEstimator::skew_symmetric(const Eigen::Vector3d &v) {
   Eigen::Matrix3d skew;
   skew << 0.0, -v(2), v(1), v(2), 0.0, -v(0), -v(1), v(0), 0.0;
   return skew;
 }
+//}
 
-Eigen::Quaterniond MEKFEstimator::ExpSO3Quaternion(const Eigen::Vector3d &theta_vec) {
+/* exp_SO3_quaternion //{ */
+Eigen::Quaterniond MEKFEstimator::exp_SO3_quaternion(const Eigen::Vector3d &theta_vec) {
   Eigen::Quaterniond delta_q;
   if (theta_vec.norm() < 1e-12) {
     delta_q = Eigen::Quaterniond(1.0, 0.5 * theta_vec.x(), 0.5 * theta_vec.y(), 0.5 * theta_vec.z());
@@ -321,23 +322,33 @@ Eigen::Quaterniond MEKFEstimator::ExpSO3Quaternion(const Eigen::Vector3d &theta_
   }
   return delta_q.normalized();
 }
+//}
 
+/* get_position() //{ */
 Eigen::Vector3d MEKFEstimator::get_position() const {
   return Eigen::Vector3d(x_nominal_(StateNominal::PX), x_nominal_(StateNominal::PY), x_nominal_(StateNominal::PZ));
 }
+//}
 
+/* get_orientation() //{ */
 Eigen::Quaterniond MEKFEstimator::get_orientation() const {
   return Eigen::Quaterniond(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 }
+//}
 
+/* get_linear_velocity() //{ */
 Eigen::Vector3d MEKFEstimator::get_linear_velocity() const {
   return Eigen::Vector3d(x_nominal_(StateNominal::VX), x_nominal_(StateNominal::VY), x_nominal_(StateNominal::VZ));
 }
+//}
 
+/* get_angular_velocity() //{ */
 Eigen::Vector3d MEKFEstimator::get_angular_velocity() const {
   return Eigen::Vector3d(x_nominal_(StateNominal::WX), x_nominal_(StateNominal::WY), x_nominal_(StateNominal::WZ));
 }
+//}
 
+/* get_odometry() //{ */
 nav_msgs::msg::Odometry MEKFEstimator::get_odometry() const {
   nav_msgs::msg::Odometry odom;
   odom.pose.pose.position.x    = x_nominal_(StateNominal::PX);
@@ -355,10 +366,13 @@ nav_msgs::msg::Odometry MEKFEstimator::get_odometry() const {
   odom.twist.twist.angular.z   = x_nominal_(StateNominal::WZ);
   return odom;
 }
+//}
 
+/* get_covariance() //{ */
 Eigen::MatrixXd MEKFEstimator::get_covariance() const {
   return P_;
 }
+//}
 
 /* set_measurement_noise_gains() //{ */
 void MEKFEstimator::set_measurement_noise_gains(const MeasurementNoiseGains &gains) {
@@ -382,7 +396,7 @@ void MEKFEstimator::set_verbosity(const std::string &verbosity) {
 }
 //}
 
-/* set_verbosity() //{ */
+/* set_mass() //{ */
 void MEKFEstimator::set_mass(double mass) {
   _mass_ = mass;
 }
