@@ -88,13 +88,14 @@ public:
   Eigen::MatrixXd         get_covariance() const;
   void                    set_measurement_noise_gains(const MeasurementNoiseGains &gains);
   void                    set_mass(double mass);
+  double                  get_mass();
 
 
 private:
-  Eigen::VectorXd x_nominal_; 
+  Eigen::VectorXd x_nominal_;
   Eigen::VectorXd x_nominal_predict;
-  Eigen::VectorXd delta_x_; 
-  Eigen::MatrixXd P_;  
+  Eigen::VectorXd delta_x_;
+  Eigen::MatrixXd P_;
 
   void inject_error_and_reset();
 

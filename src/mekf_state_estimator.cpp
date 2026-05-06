@@ -33,7 +33,7 @@ MEKFEstimator::MEKFEstimator(const double &mass, const Eigen::MatrixXd &allocati
 /* predict() //{ */
 void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
   if (is_debug_) {
-    // convert corrected orientation to Euler 
+    // convert corrected orientation to Euler
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
     // Z-Y-X -> Yaw, Pitch, Roll
@@ -122,7 +122,7 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
 
 
   if (is_debug_) {
-    // convert corrected orientation to Euler 
+    // convert corrected orientation to Euler
     Eigen::Quaterniond q_final(x_nominal_predict(StateNominal::QW), x_nominal_predict(StateNominal::QX), x_nominal_predict(StateNominal::QY),
                                x_nominal_predict(StateNominal::QZ));
 
@@ -154,7 +154,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
   Eigen::Vector3d    w_meas = Eigen::Vector3d(measurements.twist.twist.angular.x, measurements.twist.twist.angular.y, measurements.twist.twist.angular.z);
 
   if (is_debug_) {
-    // convert corrected orientation to Euler 
+    // convert corrected orientation to Euler
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
     // Z-Y-X -> Yaw, Pitch, Roll
@@ -206,7 +206,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
   Eigen::Quaterniond dq = q_hat.inverse() * q_meas;
 
-  // check the signal of the scalar component to avoid singularity 
+  // check the signal of the scalar component to avoid singularity
   if (dq.w() < 0.0) {
     dq.w() = -dq.w();
     dq.x() = -dq.x();
@@ -214,7 +214,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
     dq.z() = -dq.z();
   }
 
-  // extract the error vector (small angle aproximation) 
+  // extract the error vector (small angle aproximation)
   y.segment<3>(StateError::ROLL) = 2.0 * dq.vec();
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Identity(12, 12);
@@ -271,7 +271,7 @@ void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
 
   if (is_debug_) {
-    // convert corrected orientation to Euler 
+    // convert corrected orientation to Euler
     Eigen::Quaterniond q_final(x_nominal_(StateNominal::QW), x_nominal_(StateNominal::QX), x_nominal_(StateNominal::QY), x_nominal_(StateNominal::QZ));
 
     // Z-Y-X -> Yaw, Pitch, Roll
@@ -399,6 +399,12 @@ void MEKFEstimator::set_verbosity(const std::string &verbosity) {
 /* set_mass() //{ */
 void MEKFEstimator::set_mass(double mass) {
   _mass_ = mass;
+}
+//}
+
+/* get_mass() //{ */
+double MEKFEstimator::get_mass() {
+  return _mass_;
 }
 //}
 
