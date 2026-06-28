@@ -144,7 +144,6 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
 }
 //}
 
-<<<<<<< HEAD
 void MEKFEstimator::correct(const MeasurementPackage &measurements) {
 
   bool            has_odom  = (measurements.odometry != nullptr);
@@ -365,9 +364,6 @@ void MEKFEstimator::correct(const MeasurementPackage &measurements) {
   inject_error_and_reset();
 }
 
-=======
-/* correct() //{ */
->>>>>>> ff45f6222215eac3e6fa8b6028ef6cb9b2e4c5da
 void MEKFEstimator::correct(const nav_msgs::msg::Odometry measurements) {
 
   Eigen::Vector3d    p_meas = Eigen::Vector3d(measurements.pose.pose.position.x, measurements.pose.pose.position.y, measurements.pose.pose.position.z);
