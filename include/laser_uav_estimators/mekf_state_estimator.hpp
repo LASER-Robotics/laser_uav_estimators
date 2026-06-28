@@ -10,7 +10,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
-// #include <logging.hpp>
 
 namespace laser_uav_estimators
 {
@@ -69,7 +68,6 @@ struct NoiseGains
 
 struct MeasurementNoiseGains
 {
-  NoiseGains garmin;
   NoiseGains odometry;
 };
 
@@ -98,13 +96,15 @@ public:
   nav_msgs::msg::Odometry get_odometry() const;
   Eigen::MatrixXd         get_covariance() const;
   void                    set_measurement_noise_gains(const MeasurementNoiseGains &gains);
+  void                    set_mass(double mass);
+  double                  get_mass();
+
 
 private:
-  // Estruturas de Estado
-  Eigen::VectorXd x_nominal_;  // Estado Nominal
+  Eigen::VectorXd x_nominal_;
   Eigen::VectorXd x_nominal_predict;
-  Eigen::VectorXd delta_x_;  // Estado de Erro
-  Eigen::MatrixXd P_;        // Covariância do Erro
+  Eigen::VectorXd delta_x_;
+  Eigen::MatrixXd P_;
 
   void inject_error_and_reset();
 
@@ -113,7 +113,7 @@ private:
   bool is_debug_{false};
 
   Eigen::Matrix3d    skew_symmetric(const Eigen::Vector3d &v);
-  Eigen::Quaterniond ExpSO3Quaternion(const Eigen::Vector3d &theta_vec);
+  Eigen::Quaterniond exp_SO3_quaternion(const Eigen::Vector3d &theta_vec);
 
   MeasurementNoiseGains _gains_;
   NoiseGains            _default_gains_;
