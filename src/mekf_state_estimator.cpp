@@ -144,7 +144,7 @@ void MEKFEstimator::predict(const Eigen::VectorXd &u, double dt) {
 }
 //}
 
-void MEKFEstimator::correct(const MeasurementPackage &measurements) {
+void MEKFEstimator::correct(const laser_uav_estimators::MeasurementPackage &measurements) {
 
   bool            has_odom  = (measurements.odometry != nullptr);
   bool            has_range = (measurements.garmin != nullptr);

@@ -11,9 +11,12 @@
 
     measurement_noise_gains:
       fast_lio:  
-        position_xy: 0.0001 # 0.1
-        position_z: 0.0001   # 0.25
+        position_xy: 0.001 # 0.1
+        position_z: 0.001   # 0.25
         orientation: 0.001   # 0.1
         linear_velocity_xy: 0.001 # 0.1
         linear_velocity_z: 0.001 # 0.025
-        angular_velocity: 0.0001 # 0.1
+        angular_velocity: 0.01 # 0.1
+      garmin:  
+        position_z: 0.005   # 0.25
+ 

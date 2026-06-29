@@ -69,6 +69,7 @@ struct NoiseGains
 struct MeasurementNoiseGains
 {
   NoiseGains odometry;
+  NoiseGains garmin;
 };
 
 struct MeasurementPackage
@@ -87,7 +88,7 @@ public:
   void predict(const Eigen::VectorXd &u, double dt);
 
   void correct(const nav_msgs::msg::Odometry measurements);
-  void correct(const MeasurementPackage &measurements);
+  void correct(const laser_uav_estimators::MeasurementPackage &measurements);
 
   Eigen::Vector3d         get_position() const;
   Eigen::Quaterniond      get_orientation() const;
