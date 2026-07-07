@@ -5,6 +5,7 @@
 #include <optional>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/range.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
@@ -68,7 +69,15 @@ struct NoiseGains
 struct MeasurementNoiseGains
 {
   NoiseGains odometry;
+  NoiseGains garmin;
 };
+
+struct MeasurementPackage
+{
+  const nav_msgs::msg::Odometry *odometry = nullptr;
+  const sensor_msgs::msg::Range *garmin   = nullptr;
+};
+
 
 constexpr float GRAVITY = 9.80665f;
 
@@ -79,6 +88,7 @@ public:
   void predict(const Eigen::VectorXd &u, double dt);
 
   void correct(const nav_msgs::msg::Odometry measurements);
+  void correct(const laser_uav_estimators::MeasurementPackage &measurements);
 
   Eigen::Vector3d         get_position() const;
   Eigen::Quaterniond      get_orientation() const;
