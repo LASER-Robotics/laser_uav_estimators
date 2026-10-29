@@ -1,50 +1,67 @@
 # LASER UAV Estimators
 
-This package provides **C++ classes** responsible for the state estimation of the Laser UAV System (LUS), translating sensor data into accurate odometry.
+`laser_uav_estimators` provides the C++ state estimators used by the LASER UAV System (LUS). It combines motion prediction with odometry measurements to estimate position, orientation and velocity for the control loop.
 
-## Overview and Algorithms
+The `estimation_manager` node in `laser_uav_managers` selects the odometry source, buffers measurements and calls the estimator. This package contains the filter classes and tuning files; it has no standalone ROS node.
 
-The main objective of this package is to provide a robust estimation loop capable of fusing multiple sensor sources.
+## Estimators
 
-### State Estimator
--   **Description:** Implements an Extended Kalman Filter (EKF) that utilizes a dynamic model of the UAV for state prediction and corrects it using available sensor measurements. It handles data from diverse sources such as PX4 odometry, OpenVINS, FastLIO, and IMU data to compute the drone's position, orientation, and velocity. This node organizes the prediction and correction steps of the filter to provide a fused state estimate.
+| Class | Prediction input | Correction input | Role |
+| --- | --- | --- | --- |
+| `MEKFEstimator` | Motor control inputs and timestep, using mass, inertia and the allocation matrix. | Selected odometry and optional range measurements. | Multiplicative error-state filter used by the supplied estimation-manager launch. |
+| `ESKFEstimator` | IMU acceleration, angular velocity and timestep. | PX4, FAST-LIO and OpenVINS odometry. | Error-state filter with IMU biases, gravity estimation and odometry innovation limits. |
 
--   **Reference:** Thrun, W. Burgard, and D. Fox, Probabilistic Robotics. MIT Press, 2005.
+Both classes expose `predict()`, `correct()` and getters for the estimated state. `get_odometry()` returns a `nav_msgs/msg/Odometry`; the calling node publishes it.
 
--   **Configurable Parameters:**
-    ```yaml
-    state_estimator:
-      ros__parameters:
-        # Process Noise Gains (Q Matrix)
-        # Determines the trust in the prediction model
-        process_noise_gains:
-          position: 0.1
-          orientation: 0.01
-          linear_velocity: 0.1
-          angular_velocity: 0.1
+## Configuration
 
-        # Measurement Noise Gains (R Matrix)
-        # Determines the uncertainty of each sensor
-        measurement_noise_gains:
-          px4_odometry:
-            position: 0.1
-            orientation: 0.1
-            linear_velocity: 0.1
-            angular_velocity: 0.1
-            
-          fast_lio:
-            position: 0.001
-            orientation: 0.001
-            linear_velocity: 0.01
-            angular_velocity: 0.01
-            
-          openvins:
-            position: 0.01
-            orientation: 0.01
-            linear_velocity: 0.05
-            angular_velocity: 0.05
+[params/](params/) contains separate tuning files for the two filters and their odometry sources.
 
-          imu:
-            angular_velocity: 0.05
-            
-    ```
+| Files | Used for |
+| --- | --- |
+| `mekf_px4_api_state_estimator.yaml` | MEKF with autopilot odometry. |
+| `mekf_fast_lio_state_estimator.yaml` | MEKF with FAST-LIO odometry. |
+| `mekf_openvins_state_estimator .yaml` | MEKF with OpenVINS. The filename currently contains a space before `.yaml`. |
+| `eskf_px4_state_estimator.yaml` | ESKF tuning for autopilot odometry. |
+| `eskf_lio_state_estimator.yaml` | ESKF tuning for LiDAR odometry. |
+| `eskf_vio_state_estimator.yaml` | ESKF tuning for visual odometry. |
+
+The OpenVINS MEKF file has a different name from the one requested by the estimation-manager launch. Check the loaded file when selecting `openvins_odom`; that launch expects `mekf_openvins_state_estimator.yaml` without the space.
+
+### MEKF parameters
+
+| Parameter group | Meaning |
+| --- | --- |
+| `process_noise_gains.position_xy`, `position_z` | Prediction uncertainty for horizontal and vertical position. |
+| `process_noise_gains.orientation` | Prediction uncertainty for attitude. |
+| `process_noise_gains.linear_velocity_xy`, `linear_velocity_z`, `angular_velocity` | Prediction uncertainty for linear and angular velocity. |
+| `measurement_noise_gains.<source>.*` | Measurement uncertainty for `px4_odometry`, `fast_lio` or `openvins`, using the same state groups. |
+| `measurement_noise_gains.garmin.position_z` | Uncertainty assigned to range-based height measurements. |
+
+### ESKF parameters
+
+| Parameter group | Meaning |
+| --- | --- |
+| `process_noise_gains.velocity`, `orientation` | Velocity and attitude process-noise gains. |
+| `process_noise_gains.accelerometer`, `gyroscope` | Accelerometer and gyroscope bias process-noise gains. |
+| `measurement_noise_gains.<source>.*` | Uncertainty assigned to the measurements from each configured source. |
+| `limits.<source>.position.{x,y,z}` | Position innovation limits in metres. |
+| `limits.<source>.orientation.{roll,pitch,yaw}` | Attitude innovation limits in radians. |
+| `ekf_verbosity` | Logging level: `SILENT`, `ERROR`, `WARNING`, `INFO`, `DEBUG` or `VERBOSE`. |
+
+Larger measurement-noise values reduce the weight of that measurement relative to prediction. Tune against the sensor's noise and update rate. Choosing an ESKF YAML alone does not switch the manager from MEKF to ESKF; the caller chooses the filter class.
+
+## Build and use
+
+From the workspace root:
+
+```bash
+colcon build --packages-up-to laser_uav_estimators
+source install/setup.bash
+```
+
+For normal LUS operation, configure and launch `estimation_manager`. Its README documents the ROS topics, odometry-source selection and launch arguments.
+
+## Reference
+
+S. Thrun, W. Burgard and D. Fox, *Probabilistic Robotics*, MIT Press, 2005.
